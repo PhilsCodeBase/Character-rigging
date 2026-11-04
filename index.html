@@ -1,0 +1,2017 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-PzRBcm0bBlIcSpMJxBVQMThkBAx61YpGa+STP4ar9AI=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Motion Rig Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: studio console — control rail left, twin monitors (video | 3D) right, transport bar beneath the monitors */
+:root {
+  --bg: #0d1014;
+  --panel: #14181e;
+  --panel-2: #1a1f27;
+  --line: #262d37;
+  --fg: #e4e8ee;
+  --muted: #8791a0;
+  --accent: #4cc9e6;      /* left side / tracking */
+  --accent-2: #f2a65a;    /* right side */
+  --ok: #6fd39a;
+  --warn: #f0c35a;
+  --err: #ff7b7b;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-ui); overflow: hidden; }
+button, select, input { font: inherit; color: inherit; }
+.app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+header { display: flex; align-items: center; gap: 14px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .02em; text-transform: uppercase; }
+.brand svg { width: 26px; height: 26px; }
+.chip { font: 500 12px/1 var(--font-mono); padding: 6px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.chip.ok::before { background: var(--ok); } .chip.busy::before { background: var(--warn); } .chip.err::before { background: var(--err); }
+header .spacer { flex: 1; }
+header .hint { color: var(--muted); font-size: 12.5px; }
+.main { display: grid; grid-template-columns: 330px 1fr; min-height: 0; }
+aside { border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+.step { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.step h2 { margin: 0; display: flex; align-items: baseline; gap: 9px; font: 600 13px/1.2 var(--font-display); letter-spacing: .08em; text-transform: uppercase; }
+.step h2 .n { font: 500 11px/1 var(--font-mono); color: var(--bg); background: var(--accent); border-radius: 4px; padding: 3px 5px; letter-spacing: 0; }
+.step.done h2 .n { background: var(--ok); }
+.step p.sub { margin: -4px 0 0; color: var(--muted); font-size: 12.5px; }
+.drop { border: 1.5px dashed #3a4350; border-radius: 8px; padding: 14px 12px; text-align: center; cursor: pointer; color: var(--muted); transition: border-color .15s, background .15s; display: block; }
+.drop:hover, .drop.over { border-color: var(--accent); background: rgba(76, 201, 230, .06); color: var(--fg); }
+.drop strong { color: var(--fg); display: block; font-weight: 500; }
+.drop input { display: none; }
+.meta { font: 12px/1.5 var(--font-mono); color: var(--muted); word-break: break-all; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row > label { flex: 1 1 120px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+select, input[type=number] { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 8px 12px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:hover:not(:disabled) { border-color: #3d4756; background: #1d232c; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #062029; border-color: var(--accent); }
+.btn.primary:hover:not(:disabled) { background: #6fd6ee; border-color: #6fd6ee; }
+.btn.block { width: 100%; }
+.btn.rec { border-color: var(--err); color: var(--err); }
+.btn.rec::before { content: ""; }
+.btn:focus-visible, select:focus-visible, input:focus-visible, .drop:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.progress { height: 6px; background: var(--panel); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.progress > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font: 12px/1.5 var(--font-mono); color: var(--muted); }
+.kv b { color: var(--fg); font-weight: 500; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.toggles label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
+.maptable { display: grid; grid-template-columns: 1fr 1.4fr; gap: 4px 8px; margin-top: 8px; align-items: center; font-size: 12px; }
+.maptable select { padding: 3px 5px; font-size: 12px; }
+.maptable .lbl.l { color: var(--accent); } .maptable .lbl.r { color: var(--accent-2); }
+.exports { display: grid; gap: 8px; }
+.note { font-size: 12px; color: var(--muted); }
+.stage { display: grid; grid-template-rows: 1fr auto; min-width: 0; min-height: 0; }
+.monitors { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 1px; background: var(--line); min-height: 0; }
+.mon { position: relative; background: #090b0e; min-height: 0; min-width: 0; overflow: hidden; }
+.mon .tag { position: absolute; top: 10px; left: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: rgba(13, 16, 20, .75); padding: 5px 7px; border-radius: 4px; pointer-events: none; }
+.mon .tag em { font-style: normal; color: var(--accent); }
+#video, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+#video { object-fit: contain; }
+#overlay { pointer-events: none; z-index: 2; }
+#gl { position: absolute; inset: 0; }
+#gl canvas { display: block; width: 100% !important; height: 100% !important; }
+.legend { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--muted); pointer-events: none; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--accent); }
+.legend span.r::before { background: var(--accent-2); }
+.transport { display: flex; align-items: center; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 12px 16px; border-top: 1px solid var(--line); background: var(--panel); }
+.transport .play { width: 38px; height: 38px; border-radius: 50%; padding: 0; }
+.transport .play svg { width: 16px; height: 16px; fill: currentColor; }
+.transport input[type=range] { flex: 1; }
+.tc { font: 500 12.5px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; min-width: 170px; text-align: right; }
+.tc b { color: var(--fg); font-weight: 500; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; max-width: min(560px, calc(100% - 32px)); font-size: 13px; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.toast.err { border-color: var(--err); }
+.fatal { position: fixed; inset: auto 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px; z-index: 60; background: #2a1517; border: 1px solid var(--err); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; max-width: 720px; margin: 0 auto; }
+.fatal b { color: var(--err); }
+.demo-badge { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3; font-size: 12px; color: var(--muted); background: rgba(13,16,20,.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .app { height: auto; }
+  .main { grid-template-columns: 1fr; }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); order: 2; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .stage { order: 1; }
+  .monitors { grid-template-columns: 1fr 1fr; height: 62vh; }
+  header .hint { display: none; }
+  .tc { min-width: 0; }
+}
+@media (max-width: 560px) { .monitors { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: 92vh; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}, "integrity": {
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js": "sha384-61S/Nu32S3E5+n+KpCOTb2eRYps6fVKm+9Gz1QBvSePFthb46f063Aa/qe/lykFZ",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js": "sha384-qlO/ZugKPxAQUAvTlQoo0QECzxJIJySZmCF/DHdb2Xn/hHndFwX/vfUAC9Hbk6LP",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/FBXLoader.js": "sha384-qiLtlhknR4B5CAj8pUgthef+J+DkRbReCt9v1OJWymGnS7uNvS/2n5hY1fDPT+Qb",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/fflate.module.js": "sha384-snNAi9XXYJRekU4SDTRWA1r1x/wKnErG2M27uvwQB1fd75zxIe1wC2PeBTl1+/Yy",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/curves/NURBSCurve.js": "sha384-K5l0UXbT5oltx2sQbkGLLUpsecYQgxTdHuq8vNsmCvNrdBqxeMAiEFqZ+jVFXgoe",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/curves/NURBSUtils.js": "sha384-7HK/IlkjAvaexffm1U9b7pTzznQvjabjruxsxOlclVwrCsCjwX0THB7jRwkm+2+C",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js": "sha384-oxY9vSeh7Mrt5WmhN8xfWoDRnmoW9krEiRBY7vJKaK90jMUidM0fhbUwcblpBgTu",
+  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js": "sha384-jHGXS4+FuVOBnZkNme2ury3Ccg5DWDLYK22xX/WGdZCZsjRM4J+3n6Qc4CXx1Hjf",
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs": "sha384-pv/a53slpd9r+c7gv5R/Yx+690OjBKfh44t0YEEQi74uhGupAjv0NpiHrzlmhiVn"
+} }
+</script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke-width="2" stroke-linecap="round"><path d="M13 4v8M13 12l-6 4M13 12l6 4M13 12v4M13 16l-4 7M13 16l4 7" stroke="#4cc9e6"/><circle cx="13" cy="4" r="2.2" fill="#f2a65a" stroke="none"/></g></svg>
+      Motion Rig Studio
+    </div>
+    <span id="engine" class="chip">Tracking-Engine: nicht geladen</span>
+    <span class="spacer"></span>
+    <span class="hint">Video → Pose-Tracking → Bone-Rig → Charakter → FBX</span>
+  </header>
+  <div class="main">
+    <aside>
+      <section class="step" id="stepVideo">
+        <h2><span class="n">1</span>Video oder Live-Kamera</h2>
+        <label class="drop" id="dropVideo">
+          <input type="file" id="fileVideo" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv">
+          <strong>Video wählen oder hierher ziehen</strong>
+          MP4, MOV, WebM · eine Person, ganzer Körper im Bild
+        </label>
+        <div class="row">
+          <button class="btn primary" id="btnLive" style="flex:1">Live-Kamera starten</button>
+          <label class="toggles" style="flex:0 0 auto"><span><input type="checkbox" id="chkMirror" checked> Spiegeln</span></label>
+        </div>
+        <button class="btn block" id="btnRec" hidden>● Aufnahme starten</button>
+        <div class="meta" id="videoMeta">Noch kein Video. Rechts läuft eine Demo-Bewegung.</div>
+      </section>
+
+      <section class="step" id="stepTrack">
+        <h2><span class="n">2</span>Bewegung tracken</h2>
+        <div class="row">
+          <label>Modell
+            <select id="selQuality">
+              <option value="lite">Lite (schnell)</option>
+              <option value="full" selected>Full (empfohlen)</option>
+              <option value="heavy">Heavy (genau, langsam)</option>
+            </select>
+          </label>
+          <label>Abtastrate
+            <select id="selFps">
+              <option value="24">24 fps</option>
+              <option value="25">25 fps</option>
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnTrack" disabled style="flex:1">Tracking starten</button>
+          <button class="btn" id="btnCancel" hidden>Abbrechen</button>
+        </div>
+        <div class="progress"><i id="prog"></i></div>
+        <div class="meta" id="trackMeta">33 Körperpunkte pro Bild (MediaPipe Pose), daraus 3D-Gelenke in Metern.</div>
+        <div class="row">
+          <label>Glättung <span id="smoothVal" class="meta">1.5</span>
+            <input type="range" id="rngSmooth" min="0" max="5" step="0.25" value="1.5">
+          </label>
+        </div>
+        <div class="row">
+          <label>Root-Bewegung (Hüfte)
+            <select id="selRoot">
+              <option value="ground" selected>Füße am Boden + seitlich aus Bild</option>
+              <option value="image">Komplett aus Bildposition (Sprünge)</option>
+              <option value="off">Aus (auf der Stelle)</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="step" id="stepChar">
+        <h2><span class="n">3</span>3D-Charakter</h2>
+        <p class="sub">Geriggter Charakter in T-Pose (A-Pose geht auch). FBX, GLB oder VRM.</p>
+        <label class="drop" id="dropChar">
+          <input type="file" id="fileChar" accept=".fbx,.glb,.gltf,.vrm">
+          <strong>Charakter wählen oder hierher ziehen</strong>
+          z. B. Mixamo-, Unreal-, Rigify- oder VRM-Rig
+        </label>
+        <div class="meta" id="charMeta">Kein Charakter geladen.</div>
+        <details class="map" id="mapBox" hidden>
+          <summary>Bone-Zuordnung <span id="mapCount" class="meta"></span></summary>
+          <div class="maptable" id="mapTable"></div>
+        </details>
+        <div class="toggles">
+          <label><input type="checkbox" id="chkRig" checked> Tracking-Skelett</label>
+          <label><input type="checkbox" id="chkChar" checked> Charakter</label>
+          <label><input type="checkbox" id="chkBones"> Charakter-Bones</label>
+        </div>
+      </section>
+
+      <section class="step" id="stepExport">
+        <h2><span class="n">4</span>FBX exportieren</h2>
+        <div class="exports">
+          <button class="btn block" id="btnExpRig">Tracking-Skelett + Animation (.fbx)</button>
+          <button class="btn primary block" id="btnExpChar" disabled>Charakter + Animation (.fbx)</button>
+          <button class="btn block" id="btnExpCharAnim" disabled>Nur Animation fürs Charakter-Rig (.fbx)</button>
+          <div class="row">
+            <label>Einheit Charakter-Export
+              <select id="selUnit">
+                <option value="auto" selected>Automatisch (FBX → cm, GLB → m)</option>
+                <option value="cm">Zentimeter</option>
+                <option value="m">Meter</option>
+              </select>
+            </label>
+          </div>
+          <p class="note">Skelett-Namen sind Mixamo-kompatibel (Hips, Spine, LeftArm …). Mesh-Export enthält Skinning, Materialien und Basisfarb-Texturen.</p>
+        </div>
+      </section>
+
+      <section class="step">
+        <h2>Tracking-Daten</h2>
+        <div class="row">
+          <button class="btn" id="btnSaveJson" style="flex:1">Speichern (.json)</button>
+          <label class="btn" style="flex:1">Laden<input type="file" id="fileJson" accept=".json" hidden></label>
+        </div>
+      </section>
+    </aside>
+
+    <div class="stage">
+      <div class="monitors">
+        <div class="mon" id="monVideo">
+          <span class="tag">Video · <em id="tagTrack">Demo</em></span>
+          <video id="video" playsinline muted preload="auto"></video>
+          <canvas id="overlay"></canvas>
+          <div class="demo-badge" id="demoBadge">Demo-Bewegung. Lade links ein Video, um deine eigene zu tracken.</div>
+        </div>
+        <div class="mon" id="mon3d">
+          <span class="tag">3D · <em id="tag3d">Bone-Rig</em></span>
+          <div id="gl"></div>
+          <div class="legend"><span>links</span><span class="r">rechts</span></div>
+        </div>
+      </div>
+      <div class="transport">
+        <button class="btn play" id="btnPlay" aria-label="Abspielen / Pause"><svg viewBox="0 0 16 16" id="icoPlay"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+        <input type="range" id="scrub" min="0" max="1" step="0.01" value="0" aria-label="Zeitleiste">
+        <div class="tc" id="tc">Bild <b>0</b> / 0 · <b>0.00</b> s</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="fatal" id="fatal" hidden><b>Das Tool konnte nicht starten</b><span id="fatalMsg"></span></div>
+<script>
+// Watchdog (classic script): reports when the main module never starts, e.g. in a file preview or without internet.
+(function () {
+  function fatal(msg) { var f = document.getElementById('fatal'); document.getElementById('fatalMsg').textContent = msg; f.hidden = false; }
+  window.__mrsFatal = fatal;
+  var inFrame = false; try { inFrame = window.self !== window.top; } catch (e) { inFrame = true; }
+  setTimeout(function () {
+    if (window.__mrsBooted) return;
+    if (location.protocol !== 'file:' && location.protocol !== 'http:' && location.protocol !== 'https:' || inFrame)
+      fatal('Die Datei läuft offenbar in einer Vorschau. Bitte herunterladen und direkt in Chrome oder Edge öffnen (Doppelklick oder in ein Browserfenster ziehen).');
+    else fatal('Die Bibliotheken wurden nicht geladen. Das Tool braucht beim Öffnen Internet (cdn.jsdelivr.net). Bitte Chrome oder Edge verwenden und Adblocker für diese Datei deaktivieren.');
+  }, 9000);
+  document.addEventListener('change', function (e) {
+    if (!window.__mrsBooted && e.target && e.target.type === 'file') fatal('Das Tool ist noch nicht gestartet, daher kann die Datei nicht geladen werden. Bitte die HTML-Datei herunterladen und direkt in Chrome oder Edge öffnen, mit Internetverbindung.');
+  }, true);
+})();
+</script>
+<script type="module">
+
+const Core = (() => {
+// ============================================================
+// CORE — pure JS (no three.js): math, rig, mapping, retarget, FBX
+// ============================================================
+
+// ---------- MediaPipe landmark indices ----------
+const LM = {
+  NOSE: 0, L_EYE: 2, R_EYE: 5, L_EAR: 7, R_EAR: 8, MOUTH_L: 9, MOUTH_R: 10,
+  L_SH: 11, R_SH: 12, L_EL: 13, R_EL: 14, L_WR: 15, R_WR: 16,
+  L_PINKY: 17, R_PINKY: 18, L_INDEX: 19, R_INDEX: 20, L_THUMB: 21, R_THUMB: 22,
+  L_HIP: 23, R_HIP: 24, L_KNEE: 25, R_KNEE: 26, L_ANK: 27, R_ANK: 28,
+  L_HEEL: 29, R_HEEL: 30, L_FOOT: 31, R_FOOT: 32,
+};
+
+// ---------- vector / quaternion / matrix helpers (arrays) ----------
+const v3 = {
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: (a) => Math.hypot(a[0], a[1], a[2]),
+  norm: (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+  mid: (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2],
+};
+
+const qt = {
+  id: () => [0, 0, 0, 1],
+  mul(a, b) {
+    const [ax, ay, az, aw] = a, [bx, by, bz, bw] = b;
+    return [ax * bw + aw * bx + ay * bz - az * by, ay * bw + aw * by + az * bx - ax * bz,
+      az * bw + aw * bz + ax * by - ay * bx, aw * bw - ax * bx - ay * by - az * bz];
+  },
+  conj: (q) => [-q[0], -q[1], -q[2], q[3]],
+  norm(q) { const l = Math.hypot(q[0], q[1], q[2], q[3]) || 1; return [q[0] / l, q[1] / l, q[2] / l, q[3] / l]; },
+  rot(q, v) {
+    const [x, y, z, w] = q, [vx, vy, vz] = v;
+    const tx = 2 * (y * vz - z * vy), ty = 2 * (z * vx - x * vz), tz = 2 * (x * vy - y * vx);
+    return [vx + w * tx + y * tz - z * ty, vy + w * ty + z * tx - x * tz, vz + w * tz + x * ty - y * tx];
+  },
+  fromUnit(a, b) {
+    let r = v3.dot(a, b) + 1, x, y, z;
+    if (r < 1e-8) {
+      r = 0;
+      if (Math.abs(a[0]) > Math.abs(a[2])) { x = -a[1]; y = a[0]; z = 0; } else { x = 0; y = -a[2]; z = a[1]; }
+    } else { [x, y, z] = v3.cross(a, b); }
+    return qt.norm([x, y, z, r]);
+  },
+  axisAngle(ax, ang) { const s = Math.sin(ang / 2); const n = v3.norm(ax); return [n[0] * s, n[1] * s, n[2] * s, Math.cos(ang / 2)]; },
+  slerp(a, b, t) {
+    if (t <= 0) return a.slice(); if (t >= 1) return b.slice();
+    let [bx, by, bz, bw] = b;
+    let c = a[0] * bx + a[1] * by + a[2] * bz + a[3] * bw;
+    if (c < 0) { bx = -bx; by = -by; bz = -bz; bw = -bw; c = -c; }
+    if (c > 0.9995) return qt.norm([a[0] + (bx - a[0]) * t, a[1] + (by - a[1]) * t, a[2] + (bz - a[2]) * t, a[3] + (bw - a[3]) * t]);
+    const th = Math.acos(c), s = Math.sin(th), wa = Math.sin((1 - t) * th) / s, wb = Math.sin(t * th) / s;
+    return [a[0] * wa + bx * wb, a[1] * wa + by * wb, a[2] * wa + bz * wb, a[3] * wa + bw * wb];
+  },
+  // rotation matrix given by its columns x,y,z
+  fromBasis(x, y, z) {
+    const m11 = x[0], m12 = y[0], m13 = z[0], m21 = x[1], m22 = y[1], m23 = z[1], m31 = x[2], m32 = y[2], m33 = z[2];
+    const tr = m11 + m22 + m33; let s;
+    if (tr > 0) { s = 0.5 / Math.sqrt(tr + 1); return qt.norm([(m32 - m23) * s, (m13 - m31) * s, (m21 - m12) * s, 0.25 / s]); }
+    if (m11 > m22 && m11 > m33) { s = 2 * Math.sqrt(1 + m11 - m22 - m33); return qt.norm([0.25 * s, (m12 + m21) / s, (m13 + m31) / s, (m32 - m23) / s]); }
+    if (m22 > m33) { s = 2 * Math.sqrt(1 + m22 - m11 - m33); return qt.norm([(m12 + m21) / s, 0.25 * s, (m23 + m32) / s, (m13 - m31) / s]); }
+    s = 2 * Math.sqrt(1 + m33 - m11 - m22); return qt.norm([(m13 + m31) / s, (m23 + m32) / s, 0.25 * s, (m21 - m12) / s]);
+  },
+  // Euler for FBX rotation order XYZ (matrix = Rz*Ry*Rx), radians
+  toEulerXYZ(q) {
+    const [x, y, z, w] = q;
+    const m11 = 1 - 2 * (y * y + z * z), m12 = 2 * (x * y - z * w);
+    const m21 = 2 * (x * y + z * w), m22 = 1 - 2 * (x * x + z * z);
+    const m31 = 2 * (x * z - y * w), m32 = 2 * (y * z + x * w), m33 = 1 - 2 * (x * x + y * y);
+    const ey = Math.asin(-Math.max(-1, Math.min(1, m31)));
+    if (Math.abs(m31) < 0.9999999) return [Math.atan2(m32, m33), ey, Math.atan2(m21, m11)];
+    return [0, ey, Math.atan2(-m12, m22)];
+  },
+  fromEulerXYZ(e) { // inverse of above
+    const qx = qt.axisAngle([1, 0, 0], e[0]), qy = qt.axisAngle([0, 1, 0], e[1]), qz = qt.axisAngle([0, 0, 1], e[2]);
+    return qt.mul(qz, qt.mul(qy, qx));
+  },
+};
+
+// Orthonormal frame -> quaternion. primary axis 'a' becomes column `pa` ('x' or 'y')
+function frameQ(primary, secondary, pa) {
+  const p = v3.norm(primary);
+  let s = v3.sub(secondary, v3.mul(p, v3.dot(p, secondary)));
+  if (v3.len(s) < 1e-6) s = Math.abs(p[1]) < 0.9 ? v3.cross(p, [0, 1, 0]) : v3.cross(p, [1, 0, 0]);
+  s = v3.norm(s);
+  if (pa === 'x') return qt.fromBasis(p, s, v3.cross(p, s));        // x=p, y=s, z=x*y
+  return qt.fromBasis(s, p, v3.cross(s, p));                         // x=s, y=p
+}
+
+const m4 = {
+  compose(p, q, s) {
+    const [x, y, z, w] = q, x2 = x + x, y2 = y + y, z2 = z + z;
+    const xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
+    const [sx, sy, sz] = s;
+    return [(1 - (yy + zz)) * sx, (xy + wz) * sx, (xz - wy) * sx, 0,
+      (xy - wz) * sy, (1 - (xx + zz)) * sy, (yz + wx) * sy, 0,
+      (xz + wy) * sz, (yz - wx) * sz, (1 - (xx + yy)) * sz, 0, p[0], p[1], p[2], 1];
+  },
+  mul(a, b) {
+    const r = new Array(16);
+    for (let c = 0; c < 4; c++) for (let rr = 0; rr < 4; rr++) {
+      let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + rr] * b[c * 4 + k]; r[c * 4 + rr] = s;
+    }
+    return r;
+  },
+  invert(m) {
+    const [n11, n21, n31, n41, n12, n22, n32, n42, n13, n23, n33, n43, n14, n24, n34, n44] = m;
+    const t11 = n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44;
+    const t12 = n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44;
+    const t13 = n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44;
+    const t14 = n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
+    const det = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+    if (det === 0) return m4.identity();
+    const d = 1 / det, o = new Array(16);
+    o[0] = t11 * d; o[1] = (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) * d;
+    o[2] = (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) * d;
+    o[3] = (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) * d;
+    o[4] = t12 * d; o[5] = (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) * d;
+    o[6] = (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) * d;
+    o[7] = (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) * d;
+    o[8] = t13 * d; o[9] = (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) * d;
+    o[10] = (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) * d;
+    o[11] = (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) * d;
+    o[12] = t14 * d; o[13] = (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) * d;
+    o[14] = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * d;
+    o[15] = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * d;
+    return o;
+  },
+  identity: () => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+  decompose(m) {
+    let sx = Math.hypot(m[0], m[1], m[2]); const sy = Math.hypot(m[4], m[5], m[6]), sz = Math.hypot(m[8], m[9], m[10]);
+    const det = m[0] * (m[5] * m[10] - m[6] * m[9]) - m[4] * (m[1] * m[10] - m[2] * m[9]) + m[8] * (m[1] * m[6] - m[2] * m[5]);
+    if (det < 0) sx = -sx;
+    const q = qt.fromBasis([m[0] / sx, m[1] / sx, m[2] / sx], [m[4] / sy, m[5] / sy, m[6] / sy], [m[8] / sz, m[9] / sz, m[10] / sz]);
+    return { pos: [m[12], m[13], m[14]], quat: q, scl: [sx, sy, sz] };
+  },
+  point(m, p) { return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]]; },
+};
+
+// ---------- skeleton (plain data) ----------
+// skel = { nodes: [{name, parent, kind:'bone'|'null'|'mesh', pos, quat, scl}] } parents precede children
+function fk(skel, localQ, posOverride) {
+  const n = skel.nodes.length, mats = new Array(n), wq = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const nd = skel.nodes[i];
+    const q = localQ && localQ[i] ? localQ[i] : nd.quat;
+    const p = posOverride && posOverride[i] ? posOverride[i] : nd.pos;
+    const lm = m4.compose(p, q, nd.scl);
+    if (nd.parent >= 0) { mats[i] = m4.mul(mats[nd.parent], lm); wq[i] = qt.norm(qt.mul(wq[nd.parent], q)); }
+    else { mats[i] = lm; wq[i] = q.slice(); }
+  }
+  return { mats, wq, pos: mats.map((m) => [m[12], m[13], m[14]]) };
+}
+
+// ---------- roles ----------
+const ROLES = [
+  ['hips', 'Hüfte'], ['spine', 'Wirbelsäule'], ['chest', 'Brust'], ['upperChest', 'Obere Brust'], ['neck', 'Hals'], ['head', 'Kopf'],
+  ['lShoulder', 'Schulter L'], ['lUpperArm', 'Oberarm L'], ['lLowerArm', 'Unterarm L'], ['lHand', 'Hand L'],
+  ['rShoulder', 'Schulter R'], ['rUpperArm', 'Oberarm R'], ['rLowerArm', 'Unterarm R'], ['rHand', 'Hand R'],
+  ['lUpperLeg', 'Oberschenkel L'], ['lLowerLeg', 'Unterschenkel L'], ['lFoot', 'Fuß L'], ['lToes', 'Zehen L'],
+  ['rUpperLeg', 'Oberschenkel R'], ['rLowerLeg', 'Unterschenkel R'], ['rFoot', 'Fuß R'], ['rToes', 'Zehen R'],
+];
+
+// ---------- generated source rig ----------
+const DEFAULT_DIMS = { shoulderW: 0.36, hipW: 0.2, torso: 0.5, upperArm: 0.28, foreArm: 0.26, hand: 0.09, thigh: 0.42, shin: 0.41, foot: 0.17, neckHead: 0.2 };
+const ANKLE_H = 0.08;
+
+function buildSourceRig(d = DEFAULT_DIMS) {
+  const nodes = [], roles = {}, W = {};
+  const add = (name, parent, wp, role) => {
+    const idx = nodes.length, pw = parent >= 0 ? W[parent] : [0, 0, 0];
+    nodes.push({ name, parent, kind: 'bone', pos: v3.sub(wp, pw), quat: [0, 0, 0, 1], scl: [1, 1, 1] });
+    W[idx] = wp; if (role) roles[role] = idx; return idx;
+  };
+  const hy = d.thigh + d.shin + ANKLE_H, T = d.torso;
+  const hips = add('Hips', -1, [0, hy, 0], 'hips');
+  const sp = add('Spine', hips, [0, hy + T * 0.22, 0], 'spine');
+  const sp1 = add('Spine1', sp, [0, hy + T * 0.45, 0], 'chest');
+  const sp2 = add('Spine2', sp1, [0, hy + T * 0.7, 0], 'upperChest');
+  const neck = add('Neck', sp2, [0, hy + T, 0], 'neck');
+  const head = add('Head', neck, [0, hy + T + d.neckHead * 0.55, 0], 'head');
+  add('HeadTop_End', head, [0, hy + T + d.neckHead * 0.55 + 0.2, 0]);
+  for (const [S, sg, p] of [['Left', 1, 'l'], ['Right', -1, 'r']]) {
+    const sh = add(S + 'Shoulder', sp2, [0.035 * sg, hy + T * 0.92, 0.0], p + 'Shoulder');
+    const x0 = d.shoulderW / 2;
+    const ua = add(S + 'Arm', sh, [x0 * sg, hy + T, 0], p + 'UpperArm');
+    const la = add(S + 'ForeArm', ua, [(x0 + d.upperArm) * sg, hy + T, 0], p + 'LowerArm');
+    const ha = add(S + 'Hand', la, [(x0 + d.upperArm + d.foreArm) * sg, hy + T, 0], p + 'Hand');
+    add(S + 'Hand_End', ha, [(x0 + d.upperArm + d.foreArm + d.hand) * sg, hy + T, 0]);
+  }
+  for (const [S, sg, p] of [['Left', 1, 'l'], ['Right', -1, 'r']]) {
+    const x = d.hipW / 2 * sg;
+    const ul = add(S + 'UpLeg', hips, [x, hy, 0], p + 'UpperLeg');
+    const ll = add(S + 'Leg', ul, [x, hy - d.thigh, 0], p + 'LowerLeg');
+    const ft = add(S + 'Foot', ll, [x, ANKLE_H, 0], p + 'Foot');
+    const dy = ANKLE_H - 0.012, fz = Math.sqrt(Math.max(d.foot * d.foot - dy * dy, 0.004));
+    const tb = add(S + 'ToeBase', ft, [x, ANKLE_H - dy * 0.75, fz * 0.75], p + 'Toes');
+    add(S + 'Toe_End', tb, [x, ANKLE_H - dy, fz]);
+  }
+  return { skel: { nodes }, roles };
+}
+
+// ---------- automatic bone mapping ----------
+const IGNORE_TOK = new Set(['mixamorig', 'mixamorig1', 'mixamorig2', 'mixamorig3', 'mixamorig4', 'mixamorig5', 'mixamorig6', 'mixamorig7', 'mixamorig8', 'mixamorig9', 'j', 'bip', 'bip01', 'bip001', 'def', 'org', 'mch', 'c', 'jnt', 'joint', 'bn', 'b', 'cc', 'base', 'rig', 'armature', 'sk', 'bone', 'ik', 'mx', 'ctrl', 'deform']);
+function tokenizeBone(name) {
+  let s = String(name || '');
+  s = s.replace(/^.*[:|]/, '');
+  s = s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  const toks = s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  let side = null; const core = [];
+  for (const t of toks) {
+    if (t === 'l' || t === 'left' || t === 'lft') { side = side || 'l'; continue; }
+    if (t === 'r' || t === 'right' || t === 'rgt') { side = side || 'r'; continue; }
+    if (/^mixamorig\d*$/.test(t) || IGNORE_TOK.has(t)) continue;
+    if (/^left./.test(t)) { side = side || 'l'; core.push(t.slice(4)); continue; }
+    if (/^right./.test(t)) { side = side || 'r'; core.push(t.slice(5)); continue; }
+    core.push(t.replace(/^0+(\d)/, '$1'));
+  }
+  return { side, core: core.join('').replace(/0+(\d)/g, '$1') };
+}
+const SYN = {
+  hips: ['hips', 'hip', 'pelvis'], neck: ['neck', 'neck1'], head: ['head'],
+  Shoulder: ['shoulder', 'clavicle', 'collar', 'collarbone'], UpperArm: ['arm', 'upperarm', 'uparm'],
+  LowerArm: ['forearm', 'lowerarm', 'loarm', 'elbow'], Hand: ['hand', 'wrist'],
+  UpperLeg: ['upleg', 'upperleg', 'thigh', 'hipjoint'], LowerLeg: ['leg', 'lowerleg', 'calf', 'shin', 'knee', 'loleg'],
+  Foot: ['foot', 'ankle'], Toes: ['toebase', 'toe', 'toes', 'ball'],
+};
+// bones: [{index, name, parent(index in same array space), depth}]
+function autoMap(skel) {
+  const nodes = skel.nodes, info = nodes.map((n, i) => ({ i, ...tokenizeBone(n.name), kind: n.kind }));
+  const depth = nodes.map(() => 0); nodes.forEach((n, i) => { depth[i] = n.parent >= 0 ? depth[n.parent] + 1 : 0; });
+  const isBoneish = (i) => nodes[i].kind === 'bone';
+  const pick = (syns, side) => {
+    let best = -1;
+    for (const syn of syns) {
+      for (const b of info) {
+        if (!isBoneish(b.i) || b.core !== syn) continue;
+        if ((side || null) !== (b.side || null)) continue;
+        if (best < 0 || depth[b.i] < depth[best]) best = b.i;
+      }
+      if (best >= 0) return best;
+    }
+    return -1;
+  };
+  const roles = {};
+  for (const [S, s] of [['l', 'l'], ['r', 'r']]) {
+    for (const part of ['Shoulder', 'UpperArm', 'LowerArm', 'Hand', 'UpperLeg', 'LowerLeg', 'Foot', 'Toes']) {
+      const idx = pick(SYN[part], s); if (idx >= 0) roles[S + part] = idx;
+    }
+  }
+  const isAnc = (a, b) => { let p = nodes[b].parent; while (p >= 0) { if (p === a) return true; p = nodes[p].parent; } return false; };
+  // sanity: upper arm must be ancestor of lower arm etc. (fix mixamo "Arm" vs twist mismatch)
+  for (const s of ['l', 'r']) {
+    for (const [a, b] of [['UpperArm', 'LowerArm'], ['LowerArm', 'Hand'], ['UpperLeg', 'LowerLeg'], ['LowerLeg', 'Foot'], ['Foot', 'Toes'], ['Shoulder', 'UpperArm']]) {
+      if (roles[s + a] != null && roles[s + b] != null && !isAnc(roles[s + a], roles[s + b])) delete roles[s + b];
+    }
+  }
+  const lca = (a, b) => { const set = new Set(); let p = a; while (p >= 0) { set.add(p); p = nodes[p].parent; } p = b; while (p >= 0) { if (set.has(p)) return p; p = nodes[p].parent; } return -1; };
+  let hips = pick(SYN.hips, null);
+  if (roles.lUpperLeg != null && roles.rUpperLeg != null) {
+    const l = lca(roles.lUpperLeg, roles.rUpperLeg);
+    if (hips < 0 || (l >= 0 && !(hips === l || isAnc(hips, l)))) hips = l;
+  }
+  if (hips >= 0) roles.hips = hips;
+  let neck = pick(SYN.neck, null), head = pick(SYN.head, null);
+  if (neck >= 0) roles.neck = neck;
+  if (head >= 0) roles.head = head;
+  // spine chain: from (neck parent) or (lca of shoulders/upper arms) up to hips
+  let top = -1;
+  if (neck >= 0) top = nodes[neck].parent;
+  else {
+    const a = roles.lShoulder ?? roles.lUpperArm, b = roles.rShoulder ?? roles.rUpperArm;
+    if (a != null && b != null) top = lca(a, b);
+  }
+  if (top >= 0 && hips >= 0 && top !== hips && isAnc(hips, top)) {
+    const chain = []; let p = top; while (p >= 0 && p !== hips) { chain.unshift(p); p = nodes[p].parent; }
+    if (chain.length === 1) roles.spine = chain[0];
+    else if (chain.length === 2) { roles.spine = chain[0]; roles.chest = chain[1]; }
+    else if (chain.length >= 3) { roles.spine = chain[0]; roles.chest = chain[Math.floor((chain.length - 1) / 2) || 1]; roles.upperChest = chain[chain.length - 1]; if (roles.chest === roles.upperChest) delete roles.upperChest; }
+  }
+  return roles;
+}
+
+// ---------- landmark helpers ----------
+const lmv = (W, i) => [W[i * 3], W[i * 3 + 1], W[i * 3 + 2]];
+
+// ---------- retargeter ----------
+const HEAD_PITCH = 0.25; // rad, nose sits below the ear line
+
+function makeRetargeter(skel, roles) {
+  const N = skel.nodes.length;
+  const rest = fk(skel);
+  const R = (k) => (roles[k] != null && roles[k] >= 0 ? roles[k] : -1);
+  const P = (i) => rest.pos[i];
+  const children = skel.nodes.map(() => []); skel.nodes.forEach((n, i) => { if (n.parent >= 0) children[n.parent].push(i); });
+  const hips = R('hips');
+  if (hips < 0) throw new Error('Keine Hüfte (Hips) zugeordnet');
+  // rest basis
+  let lat = null;
+  if (R('lUpperLeg') >= 0 && R('rUpperLeg') >= 0) lat = v3.sub(P(R('lUpperLeg')), P(R('rUpperLeg')));
+  else if (R('lUpperArm') >= 0 && R('rUpperArm') >= 0) lat = v3.sub(P(R('lUpperArm')), P(R('rUpperArm')));
+  else lat = [1, 0, 0];
+  const topK = ['neck', 'head', 'upperChest', 'chest', 'spine'].find((k) => R(k) >= 0);
+  const up = topK ? v3.sub(P(R(topK)), P(hips)) : [0, 1, 0];
+  const B0 = frameQ(up, lat, 'y');
+  const B0c = qt.conj(B0);
+  const upAx = qt.rot(B0, [0, 1, 0]), fwdAx = qt.rot(B0, [0, 0, 1]);
+  // rest direction per directional role
+  const childOf = { lUpperArm: 'lLowerArm', lLowerArm: 'lHand', rUpperArm: 'rLowerArm', rLowerArm: 'rHand', lUpperLeg: 'lLowerLeg', lLowerLeg: 'lFoot', rUpperLeg: 'rLowerLeg', rLowerLeg: 'rFoot', lFoot: 'lToes', rFoot: 'rToes' };
+  const restDir = {};
+  const childAvg = (i, preferHand) => {
+    const ch = children[i].filter((c) => skel.nodes[c].kind === 'bone');
+    if (!ch.length) return null;
+    if (preferHand) {
+      const names = ch.map((c) => skel.nodes[c].name.toLowerCase());
+      for (const key of ['middle', 'mid', 'index']) { const k = names.findIndex((n) => n.includes(key)); if (k >= 0) return P(ch[k]); }
+      const nt = ch.filter((c, k) => !names[k].includes('thumb'));
+      if (nt.length) ch.splice(0, ch.length, ...nt);
+    }
+    let s = [0, 0, 0]; ch.forEach((c) => { s = v3.add(s, P(c)); }); return v3.mul(s, 1 / ch.length);
+  };
+  for (const k of Object.keys(childOf)) {
+    const i = R(k); if (i < 0) continue;
+    let target = R(childOf[k]) >= 0 ? P(R(childOf[k])) : childAvg(i, false);
+    if (k.endsWith('Foot') && !target) { restDir[k] = v3.norm(v3.add(fwdAx, v3.mul(upAx, -0.35))); continue; }
+    if (target && v3.len(v3.sub(target, P(i))) > 1e-6) restDir[k] = v3.norm(v3.sub(target, P(i)));
+  }
+  for (const s of ['l', 'r']) {
+    const h = R(s + 'Hand'); if (h < 0) continue;
+    const t = childAvg(h, true);
+    if (t && v3.len(v3.sub(t, P(h))) > 1e-6) restDir[s + 'Hand'] = v3.norm(v3.sub(t, P(h)));
+    else if (restDir[s + 'LowerArm']) restDir[s + 'Hand'] = restDir[s + 'LowerArm'];
+  }
+  const restHinge = {};
+  for (const s of ['l', 'r']) {
+    if (restDir[s + 'UpperArm']) restHinge[s + 'UpperArm'] = v3.cross(restDir[s + 'UpperArm'], fwdAx);
+    if (restDir[s + 'UpperLeg']) restHinge[s + 'UpperLeg'] = v3.cross(restDir[s + 'UpperLeg'], v3.mul(fwdAx, -1));
+    if (restDir[s + 'Hand']) restHinge[s + 'Hand'] = fwdAx; // palms down: index ahead of pinky
+  }
+  // hip height along up axis
+  let minUp = Infinity;
+  for (let i = 0; i < N; i++) if (skel.nodes[i].kind === 'bone') minUp = Math.min(minUp, v3.dot(P(i), upAx));
+  const hipHeight = Math.max(1e-6, v3.dot(P(hips), upAx) - minUp);
+  const hipsParentMat = skel.nodes[hips].parent >= 0 ? rest.mats[skel.nodes[hips].parent] : m4.identity();
+  const hipsParentInv = m4.invert(hipsParentMat);
+
+  const roleOf = new Array(N).fill(null);
+  for (const [k] of ROLES) { const i = R(k); if (i >= 0) roleOf[i] = k; }
+  const spineKeys = ['spine', 'chest', 'upperChest'].filter((k) => R(k) >= 0);
+  const spineT = {}; spineKeys.forEach((k, j) => { spineT[k] = spineKeys.length === 1 ? 1 : (j + 1) / spineKeys.length; });
+  if (spineKeys.length === 3) { spineT.spine = 0.35; spineT.chest = 0.7; spineT.upperChest = 1; }
+  const restLocal = skel.nodes.map((n) => n.quat);
+
+  // W: Float32Array(99) world landmarks (three coords, metres, hip centred)
+  // opts: { offset:[x,y,z] metres in source space, srcHipHeight }
+  function solve(W, opts = {}) {
+    const g = (i) => lmv(W, i);
+    const lHip = g(LM.L_HIP), rHip = g(LM.R_HIP), lSh = g(LM.L_SH), rSh = g(LM.R_SH);
+    const hipC = v3.mid(lHip, rHip), shC = v3.mid(lSh, rSh);
+    const torsoUp = v3.sub(shC, hipC);
+    const hipUp = v3.norm(v3.add(v3.norm(torsoUp), [0, 0.6, 0]));
+    const Qh = frameQ(v3.sub(lHip, rHip), hipUp, 'x');
+    const Qc = frameQ(torsoUp, v3.sub(lSh, rSh), 'y');
+    const earL = g(LM.L_EAR), earR = g(LM.R_EAR), earC = v3.mid(earL, earR);
+    const nose = g(LM.NOSE);
+    const hx = v3.norm(v3.sub(earL, earR));
+    let hfwd = v3.sub(nose, earC); hfwd = v3.sub(hfwd, v3.mul(hx, v3.dot(hx, hfwd)));
+    const hy = v3.norm(v3.cross(hfwd, hx));
+    const Qhead = qt.mul(qt.fromBasis(hx, hy, v3.cross(hx, hy)), qt.axisAngle([1, 0, 0], -HEAD_PITCH));
+    const Dh = qt.mul(Qh, B0c), Dc = qt.mul(Qc, B0c), Dhd = qt.mul(Qhead, B0c);
+
+    const tgt = {}, hingeT = {};
+    for (const [s, SH, EL, WR, IX, PK, HP, KN, AN, FT] of [
+      ['l', LM.L_SH, LM.L_EL, LM.L_WR, LM.L_INDEX, LM.L_PINKY, LM.L_HIP, LM.L_KNEE, LM.L_ANK, LM.L_FOOT],
+      ['r', LM.R_SH, LM.R_EL, LM.R_WR, LM.R_INDEX, LM.R_PINKY, LM.R_HIP, LM.R_KNEE, LM.R_ANK, LM.R_FOOT]]) {
+      const ua = v3.sub(g(EL), g(SH)), la = v3.sub(g(WR), g(EL));
+      tgt[s + 'UpperArm'] = v3.norm(ua); tgt[s + 'LowerArm'] = v3.norm(la);
+      hingeT[s + 'UpperArm'] = v3.cross(v3.norm(ua), v3.norm(la));
+      const handTip = v3.mid(g(IX), g(PK));
+      tgt[s + 'Hand'] = v3.norm(v3.sub(handTip, g(WR)));
+      hingeT[s + 'Hand'] = v3.sub(g(IX), g(PK));
+      const ul = v3.sub(g(KN), g(HP)), ll = v3.sub(g(AN), g(KN));
+      tgt[s + 'UpperLeg'] = v3.norm(ul); tgt[s + 'LowerLeg'] = v3.norm(ll);
+      hingeT[s + 'UpperLeg'] = v3.cross(v3.norm(ul), v3.norm(ll));
+      tgt[s + 'Foot'] = v3.norm(v3.sub(g(FT), g(AN)));
+    }
+
+    const wq = new Array(N), local = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const nd = skel.nodes[i];
+      const pq = nd.parent >= 0 ? wq[nd.parent] : [0, 0, 0, 1];
+      const role = nd.kind === 'bone' ? roleOf[i] : null;
+      const rw = rest.wq[i];
+      let w = null;
+      const swing = (dir) => {
+        const cur = qt.mul(pq, restLocal[i]);
+        const cd = qt.rot(qt.mul(cur, qt.conj(rw)), restDir[role]);
+        return qt.mul(qt.fromUnit(v3.norm(cd), dir), cur);
+      };
+      if (role === 'hips') w = qt.mul(Dh, rw);
+      else if (role && spineT[role] != null) w = qt.mul(qt.slerp(Dh, Dc, spineT[role]), rw);
+      else if (role === 'neck') w = qt.mul(qt.slerp(Dc, Dhd, 0.45), rw);
+      else if (role === 'head') w = qt.mul(Dhd, rw);
+      else if (role && /UpperArm$|UpperLeg$/.test(role) && restDir[role]) {
+        const sw = swing(tgt[role]);
+        const hl = v3.len(hingeT[role]);
+        const bw = Math.max(0, Math.min(1, (hl - 0.12) / 0.3));
+        if (bw > 0) {
+          const Rm = qt.mul(frameQ(tgt[role], hingeT[role], 'x'), qt.conj(frameQ(restDir[role], restHinge[role], 'x')));
+          w = qt.slerp(sw, qt.mul(Rm, rw), bw);
+        } else w = sw;
+      } else if (role && /Hand$/.test(role) && restDir[role]) {
+        const sw = swing(tgt[role]);
+        const Rm = qt.mul(frameQ(tgt[role], hingeT[role], 'x'), qt.conj(frameQ(restDir[role], restHinge[role], 'x')));
+        w = qt.slerp(sw, qt.mul(Rm, rw), 0.6);
+      } else if (role && /LowerArm$|LowerLeg$|Foot$/.test(role) && restDir[role]) w = swing(tgt[role]);
+      if (!w) w = qt.mul(pq, restLocal[i]);
+      wq[i] = qt.norm(w);
+      local[i] = qt.norm(qt.mul(qt.conj(pq), wq[i]));
+    }
+    // root position
+    let hipsPos = skel.nodes[hips].pos;
+    if (opts.offset) {
+      const k = hipHeight / (opts.srcHipHeight || 1);
+      const desired = v3.add(P(hips), v3.mul(opts.offset, k));
+      hipsPos = m4.point(hipsParentInv, desired);
+    }
+    return { local, hipsPos, hips };
+  }
+  return { solve, hips, hipHeight, B0, upAx, fwdAx, restDir, roles };
+}
+
+// ---------- tracking post-processing ----------
+// frames: [{w:Float32Array(99)|null, i:Float32Array(66), v:Float32Array(33)}]
+function fillAndSmooth(frames, sigma) {
+  const n = frames.length; if (!n) return [];
+  const valid = frames.map((f) => !!(f && f.w));
+  const firstValid = valid.indexOf(true); if (firstValid < 0) return [];
+  const out = new Array(n);
+  // gap fill
+  let prev = -1;
+  for (let k = 0; k < n; k++) {
+    if (valid[k]) { prev = k; out[k] = { w: Float32Array.from(frames[k].w), i: Float32Array.from(frames[k].i), v: Float32Array.from(frames[k].v) }; continue; }
+    let next = -1; for (let j = k + 1; j < n; j++) if (valid[j]) { next = j; break; }
+    const a = prev >= 0 ? frames[prev] : frames[next], b = next >= 0 ? frames[next] : frames[prev];
+    const t = prev >= 0 && next >= 0 ? (k - prev) / (next - prev) : 0;
+    const mix = (x, y) => { const r = new Float32Array(x.length); for (let j = 0; j < x.length; j++) r[j] = x[j] + (y[j] - x[j]) * t; return r; };
+    out[k] = { w: mix(a.w, b.w), i: mix(a.i, b.i), v: new Float32Array(33), filled: true };
+  }
+  if (!(sigma > 0.05)) return out;
+  const rad = Math.ceil(sigma * 3), ker = [];
+  for (let j = -rad; j <= rad; j++) ker.push(Math.exp(-(j * j) / (2 * sigma * sigma)));
+  const sm = (key, len) => {
+    const res = out.map(() => new Float32Array(len));
+    for (let k = 0; k < n; k++) {
+      for (let c = 0; c < len; c++) {
+        let s = 0, ws = 0;
+        for (let j = -rad; j <= rad; j++) { const q = Math.min(n - 1, Math.max(0, k + j)); const wgt = ker[j + rad]; s += out[q][key][c] * wgt; ws += wgt; }
+        res[k][c] = s / ws;
+      }
+    }
+    return res;
+  };
+  const W = sm('w', 99), I = sm('i', 66);
+  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled }));
+}
+
+const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+
+function measureDims(frames) {
+  const acc = {}; Object.keys(DEFAULT_DIMS).forEach((k) => { acc[k] = []; });
+  const hh = [];
+  for (const f of frames) {
+    if (!f || !f.w) continue;
+    const g = (i) => lmv(f.w, i), d = (a, b) => v3.len(v3.sub(g(a), g(b)));
+    acc.shoulderW.push(d(LM.L_SH, LM.R_SH)); acc.hipW.push(d(LM.L_HIP, LM.R_HIP));
+    acc.torso.push(v3.len(v3.sub(v3.mid(g(LM.L_SH), g(LM.R_SH)), v3.mid(g(LM.L_HIP), g(LM.R_HIP)))));
+    acc.upperArm.push((d(LM.L_SH, LM.L_EL) + d(LM.R_SH, LM.R_EL)) / 2);
+    acc.foreArm.push((d(LM.L_EL, LM.L_WR) + d(LM.R_EL, LM.R_WR)) / 2);
+    acc.hand.push((v3.len(v3.sub(v3.mid(g(LM.L_INDEX), g(LM.L_PINKY)), g(LM.L_WR))) + v3.len(v3.sub(v3.mid(g(LM.R_INDEX), g(LM.R_PINKY)), g(LM.R_WR)))) / 2);
+    acc.thigh.push((d(LM.L_HIP, LM.L_KNEE) + d(LM.R_HIP, LM.R_KNEE)) / 2);
+    acc.shin.push((d(LM.L_KNEE, LM.L_ANK) + d(LM.R_KNEE, LM.R_ANK)) / 2);
+    acc.foot.push((d(LM.L_ANK, LM.L_FOOT) + d(LM.R_ANK, LM.R_FOOT)) / 2);
+    acc.neckHead.push(v3.len(v3.sub(v3.mid(g(LM.L_EAR), g(LM.R_EAR)), v3.mid(g(LM.L_SH), g(LM.R_SH)))));
+    hh.push(-footMinY(f.w));
+  }
+  const dims = {};
+  for (const k of Object.keys(DEFAULT_DIMS)) { const m = median(acc[k]); dims[k] = m > 0.01 ? m : DEFAULT_DIMS[k]; }
+  const srcHipHeight = median(hh) > 0.2 ? median(hh) : dims.thigh + dims.shin + ANKLE_H;
+  return { dims, srcHipHeight };
+}
+function footMinY(W) {
+  let m = Infinity; for (const i of [LM.L_ANK, LM.R_ANK, LM.L_HEEL, LM.R_HEEL, LM.L_FOOT, LM.R_FOOT]) m = Math.min(m, W[i * 3 + 1]); return m;
+}
+
+// Root motion offsets per frame (source metres). mode: 'off' | 'ground' | 'image'
+function computeRootOffsets(frames, mode, vidW, vidH, srcHipHeight) {
+  const n = frames.length, out = new Array(n);
+  if (mode === 'off' || !n) { for (let k = 0; k < n; k++) out[k] = [0, 0, 0]; return out; }
+  const mpp = []; // metres per pixel
+  for (const f of frames) {
+    if (!f) continue;
+    const wt = v3.len(v3.sub(v3.mid(lmv(f.w, 11), lmv(f.w, 12)), v3.mid(lmv(f.w, 23), lmv(f.w, 24))));
+    const ix = (j) => [f.i[j * 2] * vidW, f.i[j * 2 + 1] * vidH];
+    const a = ix(11), b = ix(12), c = ix(23), d = ix(24);
+    const it = Math.hypot((a[0] + b[0]) / 2 - (c[0] + d[0]) / 2, (a[1] + b[1]) / 2 - (c[1] + d[1]) / 2);
+    if (it > 2) mpp.push(wt / it);
+  }
+  const s = median(mpp) || 0.003;
+  const hip = (f) => [((f.i[46] + f.i[48]) / 2) * vidW, ((f.i[47] + f.i[49]) / 2) * vidH];
+  const h0 = hip(frames[0]);
+  const g0 = -footMinY(frames[0].w) - srcHipHeight;
+  for (let k = 0; k < n; k++) {
+    const f = frames[k], h = hip(f);
+    const x = (h[0] - h0[0]) * s;
+    let y;
+    if (mode === 'ground') y = -footMinY(f.w) - srcHipHeight;
+    else y = -(h[1] - h0[1]) * s + g0;
+    out[k] = [x, y, 0];
+  }
+  return out;
+}
+
+// ---------- synthetic demo performance (also used for tests) ----------
+function synthPerformance(seconds = 4, fps = 30) {
+  const { skel, roles } = buildSourceRig(DEFAULT_DIMS);
+  const n = Math.round(seconds * fps), frames = [];
+  const idx = (name) => skel.nodes.findIndex((b) => b.name === name);
+  const E = (x, y, z) => qt.fromEulerXYZ([x, y, z]);
+  for (let k = 0; k < n; k++) {
+    const t = k / fps, ph = (t / seconds) * Math.PI * 2;
+    const L = skel.nodes.map((b) => b.quat);
+    const set = (name, q) => { L[idx(name)] = q; };
+    const b = Math.sin(ph * 2);
+    set('Hips', E(0.05 * Math.sin(ph * 4), 0.35 * Math.sin(ph), 0.08 * Math.sin(ph * 2)));
+    set('Spine', E(0.1 + 0.05 * Math.sin(ph * 4), -0.15 * Math.sin(ph), 0));
+    set('Spine1', E(0.05, -0.1 * Math.sin(ph), 0.05 * b));
+    set('Neck', E(0.1 * Math.sin(ph * 4), 0.2 * Math.sin(ph * 2), 0));
+    set('Head', E(0.1 * Math.sin(ph * 4 + 1), 0.2 * Math.sin(ph * 2), 0.05));
+    set('LeftArm', E(0.3 * Math.sin(ph * 2), -0.4, -0.9 - 0.6 * Math.sin(ph * 2)));
+    set('LeftForeArm', E(0, -1.2 - 0.6 * Math.sin(ph * 4), 0));
+    set('RightArm', E(-0.3 * Math.sin(ph * 2), 0.4, 0.9 - 0.6 * Math.sin(ph * 2)));
+    set('RightForeArm', E(0, 1.2 + 0.6 * Math.cos(ph * 4), 0));
+    set('LeftHand', E(0.3 * Math.sin(ph * 4), 0, 0.2));
+    set('RightHand', E(-0.3 * Math.sin(ph * 4), 0, -0.2));
+    const kl = Math.max(0, Math.sin(ph * 2)), kr = Math.max(0, -Math.sin(ph * 2));
+    set('LeftUpLeg', E(-0.9 * kl, 0.1, 0.05));
+    set('LeftLeg', E(1.4 * kl, 0, 0));
+    set('LeftFoot', E(-0.2 * kl, 0, 0));
+    set('RightUpLeg', E(-0.9 * kr, -0.1, -0.05));
+    set('RightLeg', E(1.4 * kr, 0, 0));
+    set('RightFoot', E(-0.2 * kr, 0, 0));
+    const F = fk(skel, L);
+    const p = (name) => F.pos[idx(name)], rq = (name) => F.wq[idx(name)];
+    const hipC = v3.mid(p('LeftUpLeg'), p('RightUpLeg'));
+    const W = new Float32Array(99), set3 = (i, v) => { W[i * 3] = v[0] - hipC[0]; W[i * 3 + 1] = v[1] - hipC[1]; W[i * 3 + 2] = v[2] - hipC[2]; };
+    const at = (bone, off) => v3.add(p(bone), qt.rot(rq(bone), off));
+    const nh = DEFAULT_DIMS.neckHead;
+    // head landmarks follow the Head bone's rotation around the neck point
+    const hq = rq('Head'), nk = p('Neck');
+    const hl = (o) => v3.add(nk, qt.rot(hq, o));
+    set3(LM.NOSE, hl([0, nh - 0.1 * Math.tan(HEAD_PITCH), 0.1]));
+    for (const [i, o] of [[1, [0.03, nh + 0.02, 0.09]], [2, [0.035, nh + 0.02, 0.09]], [3, [0.045, nh + 0.02, 0.085]], [4, [-0.03, nh + 0.02, 0.09]], [5, [-0.035, nh + 0.02, 0.09]], [6, [-0.045, nh + 0.02, 0.085]],
+      [7, [0.075, nh, 0]], [8, [-0.075, nh, 0]], [9, [0.025, nh - 0.05, 0.09]], [10, [-0.025, nh - 0.05, 0.09]]]) set3(i, hl(o));
+    set3(LM.L_SH, p('LeftArm')); set3(LM.R_SH, p('RightArm'));
+    set3(LM.L_EL, p('LeftForeArm')); set3(LM.R_EL, p('RightForeArm'));
+    set3(LM.L_WR, p('LeftHand')); set3(LM.R_WR, p('RightHand'));
+    const hd = DEFAULT_DIMS.hand;
+    set3(LM.L_INDEX, at('LeftHand', [hd, 0, 0.025])); set3(LM.L_PINKY, at('LeftHand', [hd, 0, -0.025])); set3(LM.L_THUMB, at('LeftHand', [hd * 0.5, 0, 0.05]));
+    set3(LM.R_INDEX, at('RightHand', [-hd, 0, 0.025])); set3(LM.R_PINKY, at('RightHand', [-hd, 0, -0.025])); set3(LM.R_THUMB, at('RightHand', [-hd * 0.5, 0, 0.05]));
+    set3(LM.L_HIP, p('LeftUpLeg')); set3(LM.R_HIP, p('RightUpLeg'));
+    set3(LM.L_KNEE, p('LeftLeg')); set3(LM.R_KNEE, p('RightLeg'));
+    set3(LM.L_ANK, p('LeftFoot')); set3(LM.R_ANK, p('RightFoot'));
+    set3(LM.L_HEEL, at('LeftFoot', [0, -0.06, -0.05])); set3(LM.R_HEEL, at('RightFoot', [0, -0.06, -0.05]));
+    set3(LM.L_FOOT, p('LeftToe_End')); set3(LM.R_FOOT, p('RightToe_End'));
+    // image coords: simple orthographic camera, portrait 9:16
+    const I = new Float32Array(66), V = new Float32Array(33).fill(1);
+    const sway = 0.12 * Math.sin(ph);
+    for (let j = 0; j < 33; j++) {
+      const X = W[j * 3] + hipC[0] + sway, Y = W[j * 3 + 1] + hipC[1];
+      I[j * 2] = 0.5 + X / 1.4; I[j * 2 + 1] = 0.92 - Y / 2.3;
+    }
+    frames.push({ w: W, i: I, v: V });
+  }
+  return { frames, fps, width: 720, height: 1280, truthSkel: skel, truthRoles: roles };
+}
+
+// ============================================================
+// Binary FBX 7.4 writer
+// ============================================================
+class Node { constructor(name, props = [], children = []) { this.name = name; this.props = props; this.children = children; } }
+const enc = new TextEncoder();
+const I = (v) => ({ t: 'I', v }), D = (v) => ({ t: 'D', v }), Lg = (v) => ({ t: 'L', v }), S = (v) => ({ t: 'S', v: enc.encode(v) }), C = (v) => ({ t: 'C', v: v ? 1 : 0 }), RAW = (v) => ({ t: 'R', v });
+const AD = (a) => ({ t: 'd', v: a }), AF = (a) => ({ t: 'f', v: a }), AI = (a) => ({ t: 'i', v: a }), AL = (a) => ({ t: 'l', v: a });
+const N = (name, props, children) => new Node(name, props || [], children || []);
+const ARR_SZ = { d: 8, f: 4, i: 4, l: 8, b: 1 };
+function propSize(p) {
+  switch (p.t) {
+    case 'Y': return 3; case 'C': return 2; case 'I': case 'F': return 5; case 'D': case 'L': return 9;
+    case 'S': case 'R': return 5 + p.v.length;
+    default: return 13 + p.v.length * ARR_SZ[p.t];
+  }
+}
+function nodeSize(n) {
+  let s = 13 + enc.encode(n.name).length;
+  for (const p of n.props) s += propSize(p);
+  for (const c of n.children) s += nodeSize(c);
+  if (n.children.length || !n.props.length) s += 13;
+  return s;
+}
+function writeFBX(top) {
+  let total = 27; for (const n of top) total += nodeSize(n); total += 13;
+  const footer = 16 + 4; let pad = ((total + footer + 15) & ~15) - (total + footer); if (pad === 0) pad = 16;
+  total += footer + pad + 4 + 120 + 16;
+  const buf = new ArrayBuffer(total), dv = new DataView(buf), u8 = new Uint8Array(buf); let o = 0;
+  const wb = (bytes) => { u8.set(bytes, o); o += bytes.length; };
+  wb(enc.encode('Kaydara FBX Binary  ')); wb([0x00, 0x1a, 0x00]); dv.setUint32(o, 7400, true); o += 4;
+  const wn = (n) => {
+    const start = o, name = enc.encode(n.name);
+    let plen = 0; for (const p of n.props) plen += propSize(p);
+    dv.setUint32(o + 4, n.props.length, true); dv.setUint32(o + 8, plen, true); dv.setUint8(o + 12, name.length); o += 13; wb(name);
+    for (const p of n.props) {
+      dv.setUint8(o, p.t.charCodeAt(0)); o += 1;
+      switch (p.t) {
+        case 'Y': dv.setInt16(o, p.v, true); o += 2; break;
+        case 'C': dv.setUint8(o, p.v); o += 1; break;
+        case 'I': dv.setInt32(o, p.v, true); o += 4; break;
+        case 'F': dv.setFloat32(o, p.v, true); o += 4; break;
+        case 'D': dv.setFloat64(o, p.v, true); o += 8; break;
+        case 'L': dv.setBigInt64(o, BigInt(Math.round(Number(p.v))), true); o += 8; break;
+        case 'S': case 'R': dv.setUint32(o, p.v.length, true); o += 4; wb(p.v); break;
+        default: {
+          const sz = ARR_SZ[p.t], len = p.v.length;
+          dv.setUint32(o, len, true); dv.setUint32(o + 4, 0, true); dv.setUint32(o + 8, len * sz, true); o += 12;
+          for (let k = 0; k < len; k++) {
+            const x = p.v[k];
+            if (p.t === 'd') dv.setFloat64(o, x, true); else if (p.t === 'f') dv.setFloat32(o, x, true);
+            else if (p.t === 'i') dv.setInt32(o, x, true); else if (p.t === 'l') dv.setBigInt64(o, BigInt(Math.round(Number(x))), true);
+            else dv.setUint8(o, x);
+            o += sz;
+          }
+        }
+      }
+    }
+    for (const c of n.children) wn(c);
+    if (n.children.length || !n.props.length) o += 13;
+    dv.setUint32(start, o, true);
+  };
+  for (const n of top) wn(n);
+  o += 13;
+  wb([0xfa, 0xbc, 0xab, 0x09, 0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e]);
+  o += 4 + pad; dv.setUint32(o, 7400, true); o += 4 + 120;
+  wb([0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b]);
+  if (o !== total) throw new Error('FBX size mismatch ' + o + ' vs ' + total);
+  return u8;
+}
+const P = (name, type, label, flags, ...vals) => N('P', [S(name), S(type), S(label), S(flags), ...vals]);
+const P70 = (...ps) => N('Properties70', [], ps);
+
+const DEG = 180 / Math.PI;
+function eulerTrack(quats) { // continuous XYZ eulers in degrees
+  const out = []; let prev = null;
+  const unwrap = (v, ref) => v + Math.round((ref - v) / (2 * Math.PI)) * 2 * Math.PI;
+  for (const q of quats) {
+    const e = qt.toEulerXYZ(q);
+    let best = e;
+    if (prev) {
+      const cands = [e, [e[0] + Math.PI, Math.PI - e[1], e[2] + Math.PI]].map((c) => c.map((v, j) => unwrap(v, prev[j])));
+      const dist = (c) => Math.abs(c[0] - prev[0]) + Math.abs(c[1] - prev[1]) + Math.abs(c[2] - prev[2]);
+      best = dist(cands[0]) <= dist(cands[1]) ? cands[0] : cands[1];
+    }
+    out.push(best); prev = best;
+  }
+  return out.map((e) => e.map((v) => v * DEG));
+}
+
+const KTIME = 46186158000;
+const sanitize = (s, fb) => (String(s || '').replace(/[\x00-\x1f]/g, '') || fb);
+
+/**
+ * opts: {
+ *  skel, posMul, unitScale, fps,
+ *  animated: number[] node indices with rotation curves,
+ *  transNode: index with translation curves (or -1),
+ *  frames: [{ local:[quat per node], hipsPos:[x,y,z] }],
+ *  meshes: [{ node: skelIndex, name, positions, normals, uvs, indices, triMat: Int32Array|null, materials:[{name,color,png}], skin:{ boneNodes:[], boneInverses:[[16]], bindMatrix:[16], skinIndex, skinWeight, itemSize } }],
+ *  rootMatrix: [16] (matrix that maps loader-root space to node-0 parent space) }
+ */
+function buildFBX(opts) {
+  const { skel, fps } = opts, posMul = opts.posMul || 1;
+  const nodes = skel.nodes, Nn = nodes.length;
+  let nextId = 1000000;
+  const id = () => nextId++;
+  const modelId = nodes.map(() => id());
+  const objects = [], conns = [];
+  const OO = (c, p) => conns.push(N('C', [S('OO'), Lg(c), Lg(p)]));
+  const OP = (c, p, prop) => conns.push(N('C', [S('OP'), Lg(c), Lg(p), S(prop)]));
+  const counts = {};
+  const cnt = (k, n = 1) => { counts[k] = (counts[k] || 0) + n; };
+  const names = nodes.map((n, i) => sanitize(n.name, (n.kind === 'bone' ? 'Bone' : n.kind === 'mesh' ? 'Mesh' : 'Null') + i));
+
+  // skinned meshes: place the mesh node exactly at its bind matrix
+  const nodeOverride = {};
+  {
+    const rf = fk(skel), rM = opts.rootMatrix || m4.identity();
+    for (const me of opts.meshes || []) {
+      if (!me.skin) continue;
+      const pm = nodes[me.node].parent >= 0 ? rf.mats[nodes[me.node].parent] : m4.identity();
+      nodeOverride[me.node] = m4.decompose(m4.mul(m4.invert(pm), m4.mul(rM, me.skin.bindMatrix)));
+    }
+  }
+  for (let i = 0; i < Nn; i++) {
+    const nd = nodeOverride[i] ? { ...nodes[i], ...nodeOverride[i] } : nodes[i];
+    const e = qt.toEulerXYZ(nd.quat).map((v) => v * DEG);
+    const type = nd.kind === 'bone' ? 'LimbNode' : nd.kind === 'mesh' ? 'Mesh' : 'Null';
+    objects.push(N('Model', [Lg(modelId[i]), S(names[i] + '\x00\x01Model'), S(type)], [
+      N('Version', [I(232)]),
+      P70(
+        P('RotationActive', 'bool', '', '', I(1)),
+        P('InheritType', 'enum', '', '', I(1)),
+        P('ScalingMax', 'Vector3D', 'Vector', '', D(0), D(0), D(0)),
+        P('DefaultAttributeIndex', 'int', 'Integer', '', I(0)),
+        P('Lcl Translation', 'Lcl Translation', '', 'A', D(nd.pos[0] * posMul), D(nd.pos[1] * posMul), D(nd.pos[2] * posMul)),
+        P('Lcl Rotation', 'Lcl Rotation', '', 'A', D(e[0]), D(e[1]), D(e[2])),
+        P('Lcl Scaling', 'Lcl Scaling', '', 'A', D(nd.scl[0]), D(nd.scl[1]), D(nd.scl[2])),
+      ),
+      N('Shading', [C(true)]), N('Culling', [S('CullingOff')]),
+    ]));
+    cnt('Model');
+    OO(modelId[i], nd.parent >= 0 ? modelId[nd.parent] : 0);
+    if (nd.kind !== 'mesh') {
+      const aid = id();
+      if (nd.kind === 'bone') objects.push(N('NodeAttribute', [Lg(aid), S(names[i] + '\x00\x01NodeAttribute'), S('LimbNode')], [P70(P('Size', 'double', 'Number', '', D(posMul * 3))), N('TypeFlags', [S('Skeleton')])]));
+      else objects.push(N('NodeAttribute', [Lg(aid), S(names[i] + '\x00\x01NodeAttribute'), S('Null')], [N('TypeFlags', [S('Null')])]));
+      cnt('NodeAttribute'); OO(aid, modelId[i]);
+    }
+  }
+
+  // ---- meshes ----
+  const restF = fk(skel);
+  const scaleMat = (m) => { const r = m.slice(); r[12] *= posMul; r[13] *= posMul; r[14] *= posMul; return r; };
+  const poseNodes = [];
+  const rootM = opts.rootMatrix || m4.identity();
+  for (const me of opts.meshes || []) {
+    const mi = me.node, gid = id();
+    const pos = me.positions, nv = pos.length / 3;
+    const verts = new Float64Array(nv * 3); for (let k = 0; k < nv * 3; k++) verts[k] = pos[k] * posMul;
+    const idx = me.indices, nt = idx.length / 3;
+    const pvi = new Int32Array(idx.length);
+    for (let t = 0; t < nt; t++) { pvi[t * 3] = idx[t * 3]; pvi[t * 3 + 1] = idx[t * 3 + 1]; pvi[t * 3 + 2] = -idx[t * 3 + 2] - 1; }
+    const layers = [], layerRefs = [];
+    if (me.normals) {
+      const nr = new Float64Array(idx.length * 3);
+      for (let k = 0; k < idx.length; k++) { const v = idx[k]; nr[k * 3] = me.normals[v * 3]; nr[k * 3 + 1] = me.normals[v * 3 + 1]; nr[k * 3 + 2] = me.normals[v * 3 + 2]; }
+      layers.push(N('LayerElementNormal', [I(0)], [N('Version', [I(101)]), N('Name', [S('')]), N('MappingInformationType', [S('ByPolygonVertex')]), N('ReferenceInformationType', [S('Direct')]), N('Normals', [AD(nr)])]));
+      layerRefs.push('LayerElementNormal');
+    }
+    if (me.uvs) {
+      const uv = new Float64Array(me.uvs.length);
+      for (let k = 0; k < me.uvs.length; k += 2) { uv[k] = me.uvs[k]; uv[k + 1] = me.flipV ? 1 - me.uvs[k + 1] : me.uvs[k + 1]; }
+      layers.push(N('LayerElementUV', [I(0)], [N('Version', [I(101)]), N('Name', [S('UVMap')]), N('MappingInformationType', [S('ByPolygonVertex')]), N('ReferenceInformationType', [S('IndexToDirect')]), N('UV', [AD(uv)]), N('UVIndex', [AI(Int32Array.from(idx))])]));
+      layerRefs.push('LayerElementUV');
+    }
+    const mats = me.materials && me.materials.length ? me.materials : [{ name: 'Material', color: [0.8, 0.8, 0.8] }];
+    const triMat = me.triMat && mats.length > 1 ? me.triMat : null;
+    layers.push(N('LayerElementMaterial', [I(0)], [N('Version', [I(101)]), N('Name', [S('')]),
+      N('MappingInformationType', [S(triMat ? 'ByPolygon' : 'AllSame')]), N('ReferenceInformationType', [S('IndexToDirect')]),
+      N('Materials', [AI(triMat ? Int32Array.from(triMat) : new Int32Array([0]))])]));
+    layerRefs.push('LayerElementMaterial');
+    objects.push(N('Geometry', [Lg(gid), S(sanitize(me.name, 'Mesh') + '\x00\x01Geometry'), S('Mesh')], [
+      P70(), N('GeometryVersion', [I(124)]), N('Vertices', [AD(verts)]), N('PolygonVertexIndex', [AI(pvi)]), ...layers,
+      N('Layer', [I(0)], [N('Version', [I(100)]), ...layerRefs.map((r) => N('LayerElement', [], [N('Type', [S(r)]), N('TypedIndex', [I(0)])]))]),
+    ]));
+    cnt('Geometry'); OO(gid, modelId[mi]);
+    for (const [k, m] of mats.entries()) {
+      const mid = id();
+      const c = m.color || [0.8, 0.8, 0.8];
+      objects.push(N('Material', [Lg(mid), S(sanitize(m.name, 'Material' + k) + '\x00\x01Material'), S('')], [
+        N('Version', [I(102)]), N('ShadingModel', [S('phong')]), N('MultiLayer', [I(0)]),
+        P70(P('DiffuseColor', 'Color', '', 'A', D(c[0]), D(c[1]), D(c[2])), P('DiffuseFactor', 'Number', '', 'A', D(1)), P('SpecularColor', 'Color', '', 'A', D(0.2), D(0.2), D(0.2)), P('Shininess', 'Number', '', 'A', D(20))),
+      ]));
+      cnt('Material'); OO(mid, modelId[mi]);
+      if (m.png) {
+        const vid = id(), tid = id(), fname = sanitize(m.name, 'tex' + k).replace(/[^\w.-]+/g, '_') + '_' + k + '.png';
+        objects.push(N('Video', [Lg(vid), S(fname + '\x00\x01Video'), S('Clip')], [
+          N('Type', [S('Clip')]), P70(P('Path', 'KString', 'XRefUrl', '', S(fname))), N('UseMipMap', [I(0)]),
+          N('Filename', [S(fname)]), N('RelativeFilename', [S(fname)]), N('Content', [RAW(m.png)]),
+        ]));
+        objects.push(N('Texture', [Lg(tid), S(fname + '\x00\x01Texture'), S('')], [
+          N('Type', [S('TextureVideoClip')]), N('Version', [I(202)]), N('TextureName', [S(fname + '\x00\x01Texture')]),
+          P70(P('CurrentTextureBlendMode', 'enum', '', '', I(0)), P('UVSet', 'KString', '', '', S('UVMap')), P('UseMaterial', 'bool', '', '', I(1))),
+          N('Media', [S(fname + '\x00\x01Video')]), N('FileName', [S(fname)]), N('RelativeFilename', [S(fname)]),
+          N('ModelUVTranslation', [D(0), D(0)]), N('ModelUVScaling', [D(1), D(1)]), N('Texture_Alpha_Source', [S('None')]), N('Cropping', [I(0), I(0), I(0), I(0)]),
+        ]));
+        cnt('Video'); cnt('Texture'); OO(vid, tid); OP(tid, mid, 'DiffuseColor');
+      }
+    }
+    if (me.skin) {
+      const sk = me.skin, sid = id(), isz = sk.itemSize || 4;
+      objects.push(N('Deformer', [Lg(sid), S(sanitize(me.name, 'Mesh') + '\x00\x01Deformer'), S('Skin')], [N('Version', [I(101)]), N('Link_DeformAcuracy', [D(50)])]));
+      cnt('Deformer'); OO(sid, gid);
+      const meshBind = m4.mul(rootM, sk.bindMatrix);
+      poseNodes.push([modelId[mi], scaleMat(meshBind)]);
+      const per = sk.boneNodes.map(() => ({ idx: [], w: [] }));
+      for (let v = 0; v < nv; v++) for (let j = 0; j < isz; j++) {
+        const w = sk.skinWeight[v * isz + j]; if (!(w > 1e-5)) continue;
+        const b = sk.skinIndex[v * isz + j]; if (per[b]) { per[b].idx.push(v); per[b].w.push(w); }
+      }
+      const seenBone = new Set();
+      sk.boneNodes.forEach((bn, b) => {
+        if (bn < 0 || seenBone.has(bn)) return; seenBone.add(bn);
+        const cid = id();
+        const link = m4.mul(rootM, m4.invert(sk.boneInverses[b]));
+        const transform = m4.mul(m4.invert(link), meshBind);
+        objects.push(N('Deformer', [Lg(cid), S(names[bn] + '\x00\x01SubDeformer'), S('Cluster')], [
+          N('Version', [I(100)]), N('UserData', [S(''), S('')]),
+          N('Indexes', [AI(Int32Array.from(per[b].idx))]), N('Weights', [AD(Float64Array.from(per[b].w))]),
+          N('Transform', [AD(scaleMat(transform))]), N('TransformLink', [AD(scaleMat(link))]),
+        ]));
+        cnt('Deformer'); OO(cid, sid); OO(modelId[bn], cid);
+        poseNodes.push([modelId[bn], scaleMat(link)]);
+      });
+    }
+  }
+  if (!poseNodes.length) {
+    // bind pose of the bare skeleton (helps importers)
+    for (let i = 0; i < Nn; i++) if (nodes[i].kind === 'bone') poseNodes.push([modelId[i], scaleMat(m4.mul(rootM, restF.mats[i]))]);
+  }
+  const uniq = new Map(); poseNodes.forEach(([a, m]) => { if (!uniq.has(a)) uniq.set(a, m); });
+  objects.push(N('Pose', [Lg(id()), S('BindPose\x00\x01Pose'), S('BindPose')], [
+    N('Type', [S('BindPose')]), N('Version', [I(100)]), N('NbPoseNodes', [I(uniq.size)]),
+    ...[...uniq.entries()].map(([a, m]) => N('PoseNode', [], [N('Node', [Lg(a)]), N('Matrix', [AD(Float64Array.from(m))])])),
+  ]));
+  cnt('Pose');
+
+  // ---- animation ----
+  const frames = opts.frames || [];
+  const nf = frames.length;
+  const stopT = Math.round(Math.max(0, nf - 1) * KTIME / fps);
+  const takeName = opts.takeName || 'Take 001';
+  if (nf) {
+    const stackId = id(), layerId = id();
+    objects.push(N('AnimationStack', [Lg(stackId), S(takeName + '\x00\x01AnimStack'), S('')], [P70(
+      P('LocalStart', 'KTime', 'Time', '', Lg(0)), P('LocalStop', 'KTime', 'Time', '', Lg(stopT)),
+      P('ReferenceStart', 'KTime', 'Time', '', Lg(0)), P('ReferenceStop', 'KTime', 'Time', '', Lg(stopT)))]));
+    objects.push(N('AnimationLayer', [Lg(layerId), S('BaseLayer\x00\x01AnimLayer'), S('')], []));
+    cnt('AnimationStack'); cnt('AnimationLayer'); OO(layerId, stackId);
+    const times = new Float64Array(nf); for (let k = 0; k < nf; k++) times[k] = Math.round(k * KTIME / fps);
+    const curve = (vals, cnId, ch) => {
+      const cid = id();
+      objects.push(N('AnimationCurve', [Lg(cid), S('\x00\x01AnimCurve'), S('')], [
+        N('Default', [D(vals[0])]), N('KeyVer', [I(4009)]), N('KeyTime', [AL(times)]), N('KeyValueFloat', [AF(Float32Array.from(vals))]),
+        N('KeyAttrFlags', [AI(new Int32Array([8452]))]), N('KeyAttrDataFloat', [AF(new Float32Array([0, 0, 9.419963346924634e-30, 0]))]), N('KeyAttrRefCount', [AI(new Int32Array([nf]))]),
+      ]));
+      cnt('AnimationCurve'); OP(cid, cnId, ch);
+    };
+    const curveNode = (kind, i, xyz) => {
+      const cn = id();
+      objects.push(N('AnimationCurveNode', [Lg(cn), S(kind + '\x00\x01AnimCurveNode'), S('')], [P70(
+        P('d|X', 'Number', '', 'A', D(xyz[0][0])), P('d|Y', 'Number', '', 'A', D(xyz[1][0])), P('d|Z', 'Number', '', 'A', D(xyz[2][0])))]));
+      cnt('AnimationCurveNode'); OO(cn, layerId); OP(cn, modelId[i], kind === 'R' ? 'Lcl Rotation' : 'Lcl Translation');
+      curve(xyz[0], cn, 'd|X'); curve(xyz[1], cn, 'd|Y'); curve(xyz[2], cn, 'd|Z');
+    };
+    for (const i of opts.animated || []) {
+      const eu = eulerTrack(frames.map((f) => f.local[i] || nodes[i].quat));
+      curveNode('R', i, [eu.map((e) => e[0]), eu.map((e) => e[1]), eu.map((e) => e[2])]);
+    }
+    if (opts.transNode >= 0) {
+      const tp = frames.map((f) => f.hipsPos || nodes[opts.transNode].pos);
+      curveNode('T', opts.transNode, [tp.map((p) => p[0] * posMul), tp.map((p) => p[1] * posMul), tp.map((p) => p[2] * posMul)]);
+    }
+  }
+
+  // ---- header / settings ----
+  const now = new Date();
+  const fpsModes = { 120: 1, 100: 2, 60: 3, 50: 4, 48: 5, 30: 6, 25: 10, 24: 11, 1000: 12, 96: 15, 72: 16 };
+  const timeMode = fpsModes[Math.round(fps)] && Math.abs(fps - Math.round(fps)) < 1e-6 ? fpsModes[Math.round(fps)] : 14;
+  const creator = 'Motion Rig Studio FBX Export';
+  const header = N('FBXHeaderExtension', [], [
+    N('FBXHeaderVersion', [I(1003)]), N('FBXVersion', [I(7400)]), N('EncryptionType', [I(0)]),
+    N('CreationTimeStamp', [], [N('Version', [I(1000)]), N('Year', [I(now.getFullYear())]), N('Month', [I(now.getMonth() + 1)]), N('Day', [I(now.getDate())]),
+      N('Hour', [I(now.getHours())]), N('Minute', [I(now.getMinutes())]), N('Second', [I(now.getSeconds())]), N('Millisecond', [I(0)])]),
+    N('Creator', [S(creator)]),
+    N('SceneInfo', [S('GlobalInfo\x00\x01SceneInfo'), S('UserData')], [
+      N('Type', [S('UserData')]), N('Version', [I(100)]),
+      N('MetaData', [], [N('Version', [I(100)]), N('Title', [S('')]), N('Subject', [S('')]), N('Author', [S('')]), N('Keywords', [S('')]), N('Revision', [S('')]), N('Comment', [S('')])]),
+      P70(P('DocumentUrl', 'KString', 'Url', '', S('/motion.fbx')), P('SrcDocumentUrl', 'KString', 'Url', '', S('/motion.fbx')),
+        P('Original', 'Compound', '', ''), P('Original|ApplicationVendor', 'KString', '', '', S('Motion Rig Studio')), P('Original|ApplicationName', 'KString', '', '', S('Motion Rig Studio')),
+        P('Original|ApplicationVersion', 'KString', '', '', S('1.0')), P('Original|DateTime_GMT', 'DateTime', '', '', S('01/01/1970 00:00:00.000')), P('Original|FileName', 'KString', '', '', S('/motion.fbx')),
+        P('LastSaved', 'Compound', '', ''), P('LastSaved|ApplicationVendor', 'KString', '', '', S('Motion Rig Studio')), P('LastSaved|ApplicationName', 'KString', '', '', S('Motion Rig Studio')),
+        P('LastSaved|ApplicationVersion', 'KString', '', '', S('1.0')), P('LastSaved|DateTime_GMT', 'DateTime', '', '', S('01/01/1970 00:00:00.000'))),
+    ]),
+  ]);
+  const unit = opts.unitScale || 1;
+  const globalSettings = N('GlobalSettings', [], [N('Version', [I(1000)]), P70(
+    P('UpAxis', 'int', 'Integer', '', I(1)), P('UpAxisSign', 'int', 'Integer', '', I(1)),
+    P('FrontAxis', 'int', 'Integer', '', I(2)), P('FrontAxisSign', 'int', 'Integer', '', I(1)),
+    P('CoordAxis', 'int', 'Integer', '', I(0)), P('CoordAxisSign', 'int', 'Integer', '', I(1)),
+    P('OriginalUpAxis', 'int', 'Integer', '', I(1)), P('OriginalUpAxisSign', 'int', 'Integer', '', I(1)),
+    P('UnitScaleFactor', 'double', 'Number', '', D(unit)), P('OriginalUnitScaleFactor', 'double', 'Number', '', D(unit)),
+    P('AmbientColor', 'ColorRGB', 'Color', '', D(0), D(0), D(0)), P('DefaultCamera', 'KString', '', '', S('Producer Perspective')),
+    P('TimeMode', 'enum', '', '', I(timeMode)), P('TimeProtocol', 'enum', '', '', I(2)), P('SnapOnFrameMode', 'enum', '', '', I(0)),
+    P('TimeSpanStart', 'KTime', 'Time', '', Lg(0)), P('TimeSpanStop', 'KTime', 'Time', '', Lg(stopT || KTIME)),
+    P('CustomFrameRate', 'double', 'Number', '', D(fps)), P('TimeMarker', 'Compound', '', ''), P('CurrentTimeMarker', 'int', 'Integer', '', I(-1)),
+  )]);
+  const docId = id();
+  const documents = N('Documents', [], [N('Count', [I(1)]), N('Document', [Lg(docId), S(''), S('Scene')], [
+    P70(P('SourceObject', 'object', '', ''), P('ActiveAnimStackName', 'KString', '', '', S(nf ? takeName : ''))), N('RootNode', [Lg(0)])])]);
+  let total = 1; Object.values(counts).forEach((v) => { total += v; });
+  const defs = N('Definitions', [], [N('Version', [I(100)]), N('Count', [I(total)]),
+    N('ObjectType', [S('GlobalSettings')], [N('Count', [I(1)])]),
+    ...Object.entries(counts).map(([k, v]) => N('ObjectType', [S(k)], [N('Count', [I(v)])]))]);
+  const takes = N('Takes', [], [N('Current', [S(nf ? takeName : '')]), ...(nf ? [N('Take', [S(takeName)], [
+    N('FileName', [S(takeName.replace(/\s+/g, '_') + '.tak')]), N('LocalTime', [Lg(0), Lg(stopT)]), N('ReferenceTime', [Lg(0), Lg(stopT)])])] : [])]);
+  const top = [
+    header,
+    N('FileId', [RAW(new Uint8Array([0x28, 0xb3, 0x2a, 0xeb, 0xb6, 0x24, 0xcc, 0xc2, 0xbf, 0xc8, 0xb0, 0x2a, 0xa9, 0x2b, 0xfc, 0xf1]))]),
+    N('CreationTime', [S('1970-01-01 10:00:00:000')]),
+    N('Creator', [S(creator)]),
+    globalSettings, documents, N('References', [], []), defs,
+    N('Objects', [], objects), N('Connections', [], conns), takes,
+  ];
+  return writeFBX(top);
+}
+
+return { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
+})();
+const { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
+
+// ============================================================
+// APP — UI, three.js viewport, MediaPipe tracking, export
+// ============================================================
+let THREE, OrbitControls, FBXLoader, GLTFLoader;
+try {
+  THREE = await import('three');
+  [{ OrbitControls }, { FBXLoader }, { GLTFLoader }] = await Promise.all([
+    import('three/addons/controls/OrbitControls.js'), import('three/addons/loaders/FBXLoader.js'), import('three/addons/loaders/GLTFLoader.js')]);
+} catch (e) {
+  window.__mrsFatal && window.__mrsFatal('Die 3D-Bibliothek (three.js) konnte nicht von cdn.jsdelivr.net geladen werden. Prüfe die Internetverbindung oder ob ein Adblocker/Firmennetz jsdelivr blockiert. Technisch: ' + (e && e.message));
+  throw e;
+}
+window.__mrsBooted = true;
+
+const $ = (id) => document.getElementById(id);
+const TASKS_VER = '0.10.14';
+const TASKS_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VER}/vision_bundle.mjs`;
+const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VER}/wasm`;
+const MODEL_URL = (q) => `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${q}/float16/1/pose_landmarker_${q}.task`;
+const LEGACY_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/';
+const LEGACY_SRI = 'sha384-qcJQ+n/ZcF15Xu2EoRupB4Av+GEAGeW0Td1mp2A90u0NdNLzLYQVMUq1Ax1YAHqk';
+
+const COL_L = new THREE.Color('#4cc9e6'), COL_R = new THREE.Color('#f2a65a'), COL_C = new THREE.Color('#dfe5ee');
+
+const S = {
+  raw: [], frames: [], offsets: [], fps: 30, vidW: 720, vidH: 1280, demo: true,
+  smooth: 1.5, rootMode: 'ground', dims: null, srcHipHeight: 0.9,
+  rig: null, char: null, playing: false, cur: 0, clock: 0, tracking: false, cancel: false,
+  videoURL: null, videoName: '',
+};
+
+// ---------------- toast ----------------
+let toastT = 0;
+function toast(msg, isErr = false, ms = 4200) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast' + (isErr ? ' err' : ''); t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms);
+}
+function setEngine(text, cls) { const e = $('engine'); e.textContent = text; e.className = 'chip ' + (cls || ''); }
+
+// ---------------- three.js scene ----------------
+const glWrap = $('gl');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+glWrap.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0b0e12');
+scene.fog = new THREE.Fog('#0b0e12', 7, 16);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+camera.position.set(0.4, 1.35, 4.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.95, 0); controls.enableDamping = true; controls.update();
+scene.add(new THREE.HemisphereLight('#cfe6ff', '#1a1410', 1.1));
+const sun = new THREE.DirectionalLight('#ffffff', 2.0);
+sun.position.set(2.5, 5, 3); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 15 });
+scene.add(sun);
+const grid = new THREE.GridHelper(12, 24, '#2a3340', '#1a2029'); scene.add(grid);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.35 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+function resize() {
+  const r = glWrap.getBoundingClientRect();
+  const w = Math.max(10, r.width), h = Math.max(10, r.height);
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  sizeOverlay();
+}
+new ResizeObserver(resize).observe(glWrap);
+new ResizeObserver(() => sizeOverlay()).observe($('monVideo'));
+
+// ---------------- generated rig (three objects) ----------------
+function sideColor(name) { return /^Left/.test(name) ? COL_L : /^Right/.test(name) ? COL_R : COL_C; }
+function buildRigObjects(skel) {
+  const holder = new THREE.Group(), objs = [];
+  const boneGeo = new THREE.CylinderGeometry(0.012, 0.024, 1, 6, 1); boneGeo.translate(0, 0.5, 0);
+  const jointGeo = new THREE.SphereGeometry(0.022, 14, 10);
+  skel.nodes.forEach((n, i) => {
+    const b = new THREE.Bone(); b.name = n.name; b.position.fromArray(n.pos); b.quaternion.fromArray(n.quat);
+    objs.push(b); (n.parent >= 0 ? objs[n.parent] : holder).add(b);
+  });
+  skel.nodes.forEach((n, i) => {
+    const col = sideColor(n.name);
+    const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.1, emissive: col, emissiveIntensity: 0.12 });
+    if (!/_End$/.test(n.name)) { const j = new THREE.Mesh(jointGeo, mat); j.castShadow = true; objs[i].add(j); }
+    if (n.parent >= 0 && !(n.name.endsWith('Shoulder'))) {
+      const v = new THREE.Vector3().fromArray(n.pos), len = v.length(); if (len < 1e-4) return;
+      const m = new THREE.Mesh(boneGeo, mat); m.scale.set(1, len, 1);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize()); m.castShadow = true;
+      objs[n.parent].add(m);
+    }
+  });
+  return { holder, objs };
+}
+function setRig(dims) {
+  const old = S.rig;
+  const { skel, roles } = buildSourceRig(dims);
+  const { holder, objs } = buildRigObjects(skel);
+  holder.visible = $('chkRig').checked;
+  scene.add(holder);
+  if (old) { scene.remove(old.holder); old.holder.traverse((o) => { if (o.material) o.material.dispose(); }); }
+  S.rig = { skel, roles, rt: makeRetargeter(skel, roles), objs, holder };
+  layoutStage();
+}
+
+function layoutStage() {
+  const both = S.char && S.char.holder.visible && S.rig && S.rig.holder.visible;
+  if (S.rig) S.rig.holder.position.x = both ? -0.65 : 0;
+  if (S.char) S.char.holder.position.x = both ? 0.65 : 0;
+  $('tag3d').textContent = S.char ? (both ? 'Bone-Rig + Charakter' : (S.char.holder.visible ? 'Charakter' : 'Bone-Rig')) : 'Bone-Rig';
+}
+
+// ---------------- data pipeline ----------------
+function reprocess(keepRig = false) {
+  S.frames = fillAndSmooth(S.raw, S.smooth);
+  if (!S.frames.length) return;
+  const m = measureDims(S.frames);
+  S.srcHipHeight = m.srcHipHeight;
+  if (!keepRig || !S.rig) { S.dims = m.dims; setRig(m.dims); }
+  S.offsets = computeRootOffsets(S.frames, S.rootMode, S.vidW, S.vidH, S.srcHipHeight);
+  $('scrub').max = String(Math.max(0, S.frames.length - 1));
+  updateExportButtons();
+}
+
+function sampleFrame(f) {
+  const n = S.frames.length; if (!n) return null;
+  f = Math.max(0, Math.min(n - 1, f));
+  const a = Math.floor(f), b = Math.min(n - 1, a + 1), t = f - a;
+  const A = S.frames[a], B = S.frames[b];
+  const w = new Float32Array(99), im = new Float32Array(66);
+  for (let k = 0; k < 99; k++) w[k] = A.w[k] + (B.w[k] - A.w[k]) * t;
+  for (let k = 0; k < 66; k++) im[k] = A.i[k] + (B.i[k] - A.i[k]) * t;
+  const oa = S.offsets[a] || [0, 0, 0], ob = S.offsets[b] || oa;
+  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled };
+}
+
+function applyPose(target, w, off) {
+  if (!target || !target.rt) return;
+  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight });
+  target.skel.nodes.forEach((n, i) => { if (n.kind === 'bone') target.objs[i].quaternion.fromArray(r.local[i]); });
+  target.objs[r.hips].position.fromArray(r.hipsPos);
+}
+
+function showFrame(f) {
+  S.cur = f;
+  const s = sampleFrame(f);
+  if (s) { applyPose(S.rig, s.w, s.off); applyPose(S.char, s.w, s.off); }
+  drawOverlay(s);
+  const n = S.frames.length;
+  $('tc').innerHTML = `Bild <b>${n ? Math.round(f) + 1 : 0}</b> / ${n} · <b>${(f / S.fps).toFixed(2)}</b> s`;
+  if (document.activeElement !== $('scrub')) $('scrub').value = String(f);
+}
+
+// ---------------- 2D overlay ----------------
+const ov = $('overlay'), octx = ov.getContext('2d');
+const EDGES = [[11, 12, 'c'], [11, 23, 'l'], [12, 24, 'r'], [23, 24, 'c'], [11, 13, 'l'], [13, 15, 'l'], [15, 17, 'l'], [15, 19, 'l'], [17, 19, 'l'], [15, 21, 'l'],
+  [12, 14, 'r'], [14, 16, 'r'], [16, 18, 'r'], [16, 20, 'r'], [18, 20, 'r'], [16, 22, 'r'], [23, 25, 'l'], [25, 27, 'l'], [27, 29, 'l'], [29, 31, 'l'], [27, 31, 'l'],
+  [24, 26, 'r'], [26, 28, 'r'], [28, 30, 'r'], [30, 32, 'r'], [28, 32, 'r'], [0, 2, 'l'], [2, 7, 'l'], [0, 5, 'r'], [5, 8, 'r'], [9, 10, 'c']];
+function sizeOverlay() {
+  const r = $('monVideo').getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+  ov.width = Math.max(1, Math.round(r.width * dpr)); ov.height = Math.max(1, Math.round(r.height * dpr));
+  drawOverlay(sampleFrame(S.cur));
+}
+function contentRect() {
+  const W = ov.width, H = ov.height, ar = S.vidW / S.vidH;
+  let w = W, h = W / ar; if (h > H) { h = H; w = H * ar; }
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+}
+function drawOverlay(s) {
+  octx.clearRect(0, 0, ov.width, ov.height);
+  const R = contentRect();
+  if (S.demo) {
+    octx.fillStyle = '#0f1318'; octx.fillRect(R.x, R.y, R.w, R.h);
+    octx.strokeStyle = '#1d242d'; octx.lineWidth = 1;
+    for (let gx = 0; gx <= 8; gx++) { octx.beginPath(); octx.moveTo(R.x + R.w * gx / 8, R.y); octx.lineTo(R.x + R.w * gx / 8, R.y + R.h); octx.stroke(); }
+    for (let gy = 0; gy <= 14; gy++) { octx.beginPath(); octx.moveTo(R.x, R.y + R.h * gy / 14); octx.lineTo(R.x + R.w, R.y + R.h * gy / 14); octx.stroke(); }
+  }
+  if (!s) return;
+  const P = (j) => [R.x + s.i[j * 2] * R.w, R.y + s.i[j * 2 + 1] * R.h];
+  const lw = Math.max(2, R.w / 160);
+  octx.lineCap = 'round'; octx.lineWidth = lw;
+  for (const [a, b, side] of EDGES) {
+    const pa = P(a), pb = P(b);
+    octx.strokeStyle = side === 'l' ? '#4cc9e6' : side === 'r' ? '#f2a65a' : '#e4e8ee';
+    octx.globalAlpha = s.filled ? 0.45 : 0.95;
+    octx.beginPath(); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); octx.stroke();
+  }
+  octx.globalAlpha = 1; octx.fillStyle = '#ffffff';
+  for (let j = 0; j < 33; j++) { if (j > 0 && j < 11 && ![2, 5, 7, 8].includes(j)) continue; const p = P(j); octx.beginPath(); octx.arc(p[0], p[1], lw * 1.1, 0, Math.PI * 2); octx.fill(); }
+}
+
+// ---------------- transport ----------------
+const video = $('video');
+function setPlaying(p) {
+  S.playing = p;
+  $('icoPlay').innerHTML = p ? '<path d="M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z"/>' : '<path d="M4 2.5v11l9-5.5z"/>';
+  if (!S.demo && S.videoURL) {
+    if (p) { if (video.ended || video.currentTime >= video.duration - 0.05) video.currentTime = 0; video.play().catch(() => {}); } else video.pause();
+  }
+}
+$('btnPlay').onclick = () => { if (!S.tracking) setPlaying(!S.playing); };
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !S.tracking) { e.preventDefault(); setPlaying(!S.playing); }
+});
+$('scrub').addEventListener('input', () => {
+  if (S.tracking) return;
+  setPlaying(false);
+  const f = parseFloat($('scrub').value);
+  if (!S.demo && S.videoURL && S.frames.length) video.currentTime = Math.min(video.duration || 0, f / S.fps);
+  showFrame(f);
+});
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (S.live) liveStep(now);
+  else if (!S.tracking && S.frames.length) {
+    if (S.playing) {
+      if (S.demo || !S.videoURL) { S.clock = (S.clock + dt) % (S.frames.length / S.fps); showFrame(S.clock * S.fps); }
+      else { showFrame(Math.min(S.frames.length - 1, video.currentTime * S.fps)); if (video.ended) { video.currentTime = 0; video.play().catch(() => {}); } }
+    }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+// ---------------- video loading ----------------
+const VIDEO_ERR = { 1: 'Laden abgebrochen', 2: 'Netzwerk-/Lesefehler', 3: 'Video konnte nicht dekodiert werden', 4: 'Format oder Codec wird von diesem Browser nicht unterstützt' };
+function videoFail(file, why) {
+  $('videoMeta').innerHTML = `<span style="color:var(--err)">${escapeHtml(file.name)}: ${escapeHtml(why)}</span><br>Tipp: In Chrome oder Edge öffnen. iPhone-Videos (HEVC/H.265) vorher als MP4 H.264 exportieren, z. B. über „Kompatibelste“ in den Kamera-Einstellungen.`;
+  $('btnTrack').disabled = true;
+  toast('Video nicht ladbar: ' + why, true, 7000);
+}
+function loadVideoFile(file) {
+  if (!file) return;
+  if (S.tracking) { toast('Bitte erst das laufende Tracking abbrechen.', true); return; }
+  if (S.live) stopLive();
+  video.srcObject = null; video.style.transform = '';
+  const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|m4v|mov|webm|mkv|avi|3gp|ogv)$/i.test(file.name);
+  if (!isVideo) { videoFail(file, 'Das ist keine Videodatei (' + (file.type || 'unbekannter Typ') + ').'); return; }
+  if (S.videoURL) URL.revokeObjectURL(S.videoURL);
+  S.videoURL = URL.createObjectURL(file); S.videoName = file.name.replace(/\.[^.]+$/, '');
+  setPlaying(false);
+  $('videoMeta').textContent = 'Lade ' + file.name + ' …';
+  let settled = false;
+  const ready = async () => {
+    if (settled) return; settled = true; clearTimeout(timer);
+    // some files report Infinity duration until seeked to the end
+    if (!isFinite(video.duration) || !(video.duration > 0)) {
+      await new Promise((r) => { const h = () => { video.removeEventListener('durationchange', h); r(); }; video.addEventListener('durationchange', h); video.currentTime = 1e7; setTimeout(r, 2000); });
+      video.currentTime = 0;
+    }
+    if (!(video.duration > 0) || !isFinite(video.duration)) { videoFail(file, 'Die Videolänge konnte nicht ermittelt werden.'); return; }
+    if (!video.videoWidth) { videoFail(file, 'Die Datei enthält keine abspielbare Videospur (evtl. HEVC/H.265).'); return; }
+    S.vidW = video.videoWidth; S.vidH = video.videoHeight;
+    S.demo = false; $('demoBadge').hidden = true;
+    S.raw = []; S.frames = []; S.offsets = [];
+    $('scrub').max = '0'; $('scrub').value = '0';
+    $('videoMeta').innerHTML = `${escapeHtml(file.name)}<br>${S.vidW}×${S.vidH} · ${video.duration.toFixed(2)} s`;
+    $('tagTrack').textContent = 'nicht getrackt';
+    $('btnTrack').disabled = false;
+    $('stepVideo').classList.add('done'); $('stepTrack').classList.remove('done');
+    sizeOverlay(); updateExportButtons();
+    $('tc').innerHTML = `Bild <b>0</b> / 0 · <b>0.00</b> s`;
+    toast('Video geladen. Jetzt „Tracking starten“.');
+    ensureEngine($('selQuality').value).catch(() => {});
+  };
+  video.onloadeddata = ready;
+  video.onloadedmetadata = () => { if (video.videoWidth) ready(); };
+  video.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); const c = video.error ? video.error.code : 0; videoFail(file, (VIDEO_ERR[c] || 'Unbekannter Fehler') + (video.error && video.error.message ? ' (' + video.error.message + ')' : '')); };
+  const timer = setTimeout(() => { if (!settled) { settled = true; videoFail(file, 'Der Browser hat das Video nach 15 s noch nicht geöffnet.'); } }, 15000);
+  video.src = S.videoURL; video.load();
+}
+$('fileVideo').addEventListener('change', (e) => { loadVideoFile(e.target.files[0]); e.target.value = ''; });
+for (const [dz, fn] of [['dropVideo', (f) => loadVideoFile(f)], ['dropChar', (f) => loadCharacterFile(f)]]) {
+  const el = $(dz);
+  el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', (e) => { e.preventDefault(); el.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) fn(f); });
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// ---------------- MediaPipe engine ----------------
+const ENG = { mode: null, quality: null, landmarker: null, pose: null, ts: 0, loading: null, legacyResolve: null };
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; if (src === LEGACY_BASE + 'pose.js') s.integrity = LEGACY_SRI; s.crossOrigin = 'anonymous'; s.onload = res; s.onerror = () => rej(new Error('Script nicht ladbar: ' + src)); document.head.appendChild(s); });
+}
+async function ensureEngine(quality) {
+  if (ENG.mode && ENG.quality === quality) return;
+  if (ENG.loading) { await ENG.loading.catch(() => {}); if (ENG.mode && ENG.quality === quality) return; }
+  ENG.loading = (async () => {
+    setEngine('Tracking-Engine wird geladen …', 'busy');
+    if (ENG.landmarker) { try { ENG.landmarker.close(); } catch (e) {} ENG.landmarker = null; }
+    try {
+      const vision = await import(TASKS_URL);
+      const fileset = await vision.FilesetResolver.forVisionTasks(WASM_URL);
+      const make = (delegate) => vision.PoseLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: MODEL_URL(quality), delegate }, runningMode: 'VIDEO', numPoses: 1,
+        minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5, outputSegmentationMasks: false,
+      });
+      let dlg = 'GPU';
+      try { ENG.landmarker = await make('GPU'); } catch (e) { console.warn('GPU delegate failed, using CPU', e); dlg = 'CPU'; ENG.landmarker = await make('CPU'); }
+      ENG.mode = 'tasks'; ENG.quality = quality;
+      setEngine(`MediaPipe Pose ${quality} · ${dlg}`, 'ok');
+    } catch (err) {
+      console.warn('tasks-vision failed, trying legacy pose', err);
+      if (!window.Pose) await loadScript(LEGACY_BASE + 'pose.js');
+      ENG.pose = ENG.pose || new window.Pose({ locateFile: (f) => LEGACY_BASE + f });
+      ENG.pose.setOptions({ modelComplexity: quality === 'lite' ? 0 : quality === 'heavy' ? 2 : 1, smoothLandmarks: false, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      ENG.pose.onResults((r) => { if (ENG.legacyResolve) { const f = ENG.legacyResolve; ENG.legacyResolve = null; f(r); } });
+      await ENG.pose.initialize();
+      ENG.mode = 'legacy'; ENG.quality = quality;
+      setEngine(`MediaPipe Pose (legacy) ${quality}`, 'ok');
+    }
+  })();
+  try { await ENG.loading; } catch (e) { setEngine('Tracking-Engine nicht ladbar', 'err'); ENG.mode = null; throw e; } finally { ENG.loading = null; }
+}
+async function detect(stepMs, absTs, mirror) {
+  ENG.ts = absTs != null ? Math.max(ENG.ts + 1, Math.round(absTs)) : ENG.ts + Math.max(1, Math.round(stepMs));
+  if (ENG.mode === 'tasks') {
+    const r = ENG.landmarker.detectForVideo(video, ENG.ts);
+    if (r && r.landmarks && r.landmarks[0] && r.worldLandmarks && r.worldLandmarks[0]) return toFrame(r.landmarks[0], r.worldLandmarks[0], mirror);
+    return null;
+  }
+  const res = await new Promise((resolve) => { ENG.legacyResolve = resolve; ENG.pose.send({ image: video }).catch(() => resolve(null)); });
+  if (res && res.poseLandmarks && res.poseWorldLandmarks) return toFrame(res.poseLandmarks, res.poseWorldLandmarks, mirror);
+  return null;
+}
+const MIRROR_PAIRS = [[1, 4], [2, 5], [3, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16], [17, 18], [19, 20], [21, 22], [23, 24], [25, 26], [27, 28], [29, 30], [31, 32]];
+const MIRROR_MAP = (() => { const m = Array.from({ length: 33 }, (_, k) => k); MIRROR_PAIRS.forEach(([a, b]) => { m[a] = b; m[b] = a; }); return m; })();
+function toFrame(img, world, mirror) {
+  const w = new Float32Array(99), i = new Float32Array(66), v = new Float32Array(33);
+  for (let j = 0; j < 33; j++) {
+    if (mirror) { // selfie view: the person's right side drives the character's left, like a mirror
+      const a = world[MIRROR_MAP[j]], b = img[MIRROR_MAP[j]];
+      w[j * 3] = -a.x; w[j * 3 + 1] = -a.y; w[j * 3 + 2] = -a.z;
+      i[j * 2] = 1 - b.x; i[j * 2 + 1] = b.y; v[j] = b.visibility == null ? 1 : b.visibility;
+      continue;
+    }
+    const a = world[j], b = img[j];
+    w[j * 3] = a.x; w[j * 3 + 1] = -a.y; w[j * 3 + 2] = -a.z;   // MediaPipe (y down, z towards camera = negative) -> Y up, Z towards viewer
+    i[j * 2] = b.x; i[j * 2 + 1] = b.y; v[j] = b.visibility == null ? 1 : b.visibility;
+  }
+  return { w, i, v };
+}
+function seek(t) {
+  return new Promise((resolve) => {
+    if (Math.abs(video.currentTime - t) < 1e-4 && video.readyState >= 2) { resolve(); return; }
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(); };
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      if (video.requestVideoFrameCallback) { const to = setTimeout(finish, 150); video.requestVideoFrameCallback(() => { clearTimeout(to); finish(); }); }
+      else setTimeout(finish, 30);
+    };
+    video.addEventListener('seeked', onSeeked);
+    setTimeout(() => { video.removeEventListener('seeked', onSeeked); finish(); }, 3000);
+    video.currentTime = t;
+  });
+}
+
+async function runTracking() {
+  if (!S.videoURL || S.tracking) return;
+  const quality = $('selQuality').value, fps = parseFloat($('selFps').value);
+  try { await ensureEngine(quality); } catch (e) {
+    toast('Die Tracking-Engine konnte nicht geladen werden. Prüfe die Internetverbindung (MediaPipe wird von jsdelivr und storage.googleapis.com geladen).', true, 8000);
+    return;
+  }
+  setPlaying(false);
+  S.tracking = true; S.cancel = false; S.fps = fps;
+  $('btnTrack').disabled = true; $('btnCancel').hidden = false; $('tagTrack').textContent = 'tracke …';
+  const dur = video.duration, n = Math.max(1, Math.floor(dur * fps));
+  const raw = new Array(n).fill(null); let hits = 0;
+  const t0 = performance.now();
+  S.raw = raw; S.frames = [];
+  for (let k = 0; k < n && !S.cancel; k++) {
+    const t = Math.min(dur - 0.001, k / fps);
+    await seek(t);
+    let fr = null;
+    try { fr = await detect(1000 / fps); } catch (e) { console.warn(e); }
+    if (fr) { raw[k] = fr; hits++; }
+    if (k % 2 === 0 || k === n - 1) {
+      $('prog').style.width = ((k + 1) / n * 100).toFixed(1) + '%';
+      const el = (performance.now() - t0) / 1000, eta = el / (k + 1) * (n - k - 1);
+      $('trackMeta').textContent = `Bild ${k + 1}/${n} · Person in ${hits} Bildern · noch ~${Math.ceil(eta)} s`;
+      if (fr) {
+        // live preview of the current frame (raw, unsmoothed)
+        if (!S.rig) setRig(DEFAULT_DIMS);
+        applyPose(S.rig, fr.w, null);
+        drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0] });
+      } else drawOverlay(null);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+  S.tracking = false; $('btnCancel').hidden = true; $('btnTrack').disabled = false;
+  if (S.cancel) { $('tagTrack').textContent = 'abgebrochen'; $('trackMeta').textContent = 'Tracking abgebrochen.'; S.raw = []; $('prog').style.width = '0%'; return; }
+  if (!hits) { $('tagTrack').textContent = 'keine Person'; $('trackMeta').textContent = 'In keinem Bild wurde eine Person erkannt. Der ganze Körper sollte gut sichtbar sein.'; toast('Keine Person erkannt.', true); return; }
+  reprocess();
+  $('tagTrack').textContent = `${hits}/${n} Bilder getrackt`;
+  $('trackMeta').textContent = `Fertig in ${((performance.now() - t0) / 1000).toFixed(1)} s · ${hits} von ${n} Bildern erkannt` + (hits < n ? ' (Lücken interpoliert)' : '') + '.';
+  $('stepTrack').classList.add('done');
+  video.currentTime = 0; S.cur = 0; showFrame(0);
+  setPlaying(true);
+}
+$('btnTrack').onclick = runTracking;
+$('btnCancel').onclick = () => { S.cancel = true; };
+$('selQuality').addEventListener('change', () => { if (S.videoURL) ensureEngine($('selQuality').value).catch(() => {}); });
+$('rngSmooth').addEventListener('input', () => {
+  S.smooth = parseFloat($('rngSmooth').value); $('smoothVal').textContent = S.smooth.toFixed(2);
+  if (S.raw.length && !S.tracking) { reprocess(true); showFrame(S.cur); }
+});
+$('selRoot').addEventListener('change', () => {
+  S.rootMode = $('selRoot').value;
+  if (S.frames.length) { S.offsets = computeRootOffsets(S.frames, S.rootMode, S.vidW, S.vidH, S.srcHipHeight); showFrame(S.cur); }
+});
+
+// ---------------- character ----------------
+function skelFromObject(root) {
+  const boneSet = new Set(), meshes = [];
+  root.traverse((o) => { if (o.isBone) boneSet.add(o); if (o.isSkinnedMesh && o.skeleton) o.skeleton.bones.forEach((b) => boneSet.add(b)); if (o.isMesh) meshes.push(o); });
+  const need = new Set();
+  const mark = (o) => { while (o) { need.add(o); if (o === root) break; o = o.parent; } };
+  boneSet.forEach(mark); meshes.forEach(mark); need.add(root);
+  const nodes = [], objs = [], index = new Map();
+  const visit = (o, parent) => {
+    if (!need.has(o)) return;
+    const idx = nodes.length;
+    const kind = boneSet.has(o) ? 'bone' : o.isMesh ? 'mesh' : 'null';
+    nodes.push({ name: o.name || '', parent, kind, pos: o.position.toArray(), quat: o.quaternion.toArray(), scl: o.scale.toArray() });
+    objs.push(o); index.set(o, idx);
+    o.children.forEach((c) => visit(c, idx));
+  };
+  visit(root, -1);
+  return { skel: { nodes }, objs, index, meshes };
+}
+
+async function loadCharacterFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  $('charMeta').textContent = 'Lade ' + file.name + ' …';
+  try {
+    const buf = await file.arrayBuffer();
+    let root, flipV = false, unit = 'cm';
+    if (ext === 'fbx') { root = new FBXLoader().parse(buf, ''); }
+    else if (ext === 'glb' || ext === 'gltf' || ext === 'vrm') {
+      let data = buf;
+      if (ext === 'gltf') data = new TextDecoder().decode(buf);
+      const gltf = await new GLTFLoader().parseAsync(data, '');
+      root = gltf.scene || gltf.scenes[0]; flipV = true; unit = 'm';
+    } else throw new Error('Format nicht unterstützt (FBX, GLB, GLTF oder VRM).');
+    root.updateMatrixWorld(true);
+    const info = skelFromObject(root);
+    const boneCount = info.skel.nodes.filter((n) => n.kind === 'bone').length;
+    if (!boneCount) throw new Error('Die Datei enthält kein Skelett (keine Bones). Bitte einen geriggten Charakter verwenden.');
+    if (S.char) { scene.remove(S.char.holder); if (S.char.helper) scene.remove(S.char.helper); }
+    const holder = new THREE.Group(); holder.add(root); scene.add(holder);
+    root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    // fit to ~1.75 m, feet on the floor
+    holder.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root);
+    let h = box.max.y - box.min.y;
+    if (!(h > 1e-6) || !isFinite(h)) {
+      box.makeEmpty(); info.objs.forEach((o, i) => { if (info.skel.nodes[i].kind === 'bone') box.expandByPoint(o.getWorldPosition(new THREE.Vector3())); }); h = box.max.y - box.min.y || 1;
+    }
+    const sc = 1.75 / h; holder.scale.setScalar(sc); holder.position.y = -box.min.y * sc;
+    const roles = autoMap(info.skel);
+    const helper = new THREE.SkeletonHelper(root); helper.visible = $('chkBones').checked; scene.add(helper);
+    S.char = { root, holder, helper, ...info, roles, rt: null, flipV, unit, name: file.name.replace(/\.[^.]+$/, ''), ext };
+    holder.visible = $('chkChar').checked;
+    rebuildCharRetarget();
+    buildMapTable();
+    const nm = Object.keys(roles).length;
+    $('charMeta').innerHTML = `${escapeHtml(file.name)}<br>${boneCount} Bones · ${info.meshes.length} Meshes · ${nm}/${ROLES.length} Rollen automatisch zugeordnet`;
+    $('mapBox').hidden = false; if (nm < 14) $('mapBox').open = true;
+    $('stepChar').classList.add('done');
+    layoutStage(); updateExportButtons();
+    showFrame(S.cur);
+    if (nm < 14) toast('Einige Bones wurden nicht erkannt. Bitte die Zuordnung unter „Bone-Zuordnung“ prüfen.', true, 6000);
+  } catch (err) {
+    console.error(err);
+    $('charMeta').textContent = 'Fehler: ' + (err.message || err);
+    toast('Charakter konnte nicht geladen werden: ' + (err.message || err), true, 7000);
+  }
+}
+function rebuildCharRetarget() {
+  const c = S.char; if (!c) return;
+  try { c.rt = makeRetargeter(c.skel, c.roles); }
+  catch (e) { c.rt = null; toast(e.message + ' — bitte in der Bone-Zuordnung die Hüfte wählen.', true, 6000); }
+  // reset to rest pose
+  c.skel.nodes.forEach((n, i) => { c.objs[i].quaternion.fromArray(n.quat); c.objs[i].position.fromArray(n.pos); });
+}
+function buildMapTable() {
+  const c = S.char, tb = $('mapTable'); tb.innerHTML = '';
+  const opts = ['<option value="-1">— keine —</option>'].concat(c.skel.nodes.map((n, i) => n.kind === 'bone' ? `<option value="${i}">${escapeHtml(n.name || 'Bone ' + i)}</option>` : '').filter(Boolean)).join('');
+  for (const [k, label] of ROLES) {
+    const l = document.createElement('div'); l.className = 'lbl ' + (k[0] === 'l' && k !== 'hips' ? 'l' : k[0] === 'r' ? 'r' : ''); l.textContent = label;
+    const sel = document.createElement('select'); sel.id = 'map_' + k; sel.innerHTML = opts; sel.value = String(c.roles[k] ?? -1);
+    sel.addEventListener('change', () => {
+      const v = parseInt(sel.value, 10); if (v >= 0) c.roles[k] = v; else delete c.roles[k];
+      rebuildCharRetarget(); updateMapCount(); showFrame(S.cur);
+    });
+    tb.append(l, sel);
+  }
+  updateMapCount();
+}
+function updateMapCount() { $('mapCount').textContent = `(${Object.keys(S.char.roles).length}/${ROLES.length})`; }
+$('fileChar').addEventListener('change', (e) => { loadCharacterFile(e.target.files[0]); e.target.value = ''; });
+$('chkRig').addEventListener('change', () => { if (S.rig) S.rig.holder.visible = $('chkRig').checked; layoutStage(); });
+$('chkChar').addEventListener('change', () => { if (S.char) S.char.holder.visible = $('chkChar').checked; layoutStage(); });
+$('chkBones').addEventListener('change', () => { if (S.char) S.char.helper.visible = $('chkBones').checked; });
+
+// ---------------- export ----------------
+function updateExportButtons() {
+  const has = S.frames.length > 0 && !S.tracking;
+  $('btnExpRig').disabled = !has;
+  $('btnExpChar').disabled = !(has && S.char && S.char.rt);
+  $('btnExpCharAnim').disabled = !(has && S.char && S.char.rt);
+  $('btnSaveJson').disabled = !S.raw.length || S.demo;
+}
+function download(bytes, name, type = 'application/octet-stream') {
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function bake(target) {
+  const out = [];
+  for (let k = 0; k < S.frames.length; k++) {
+    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight });
+    out.push({ local: r.local, hipsPos: r.hipsPos });
+  }
+  return out;
+}
+const baseName = () => (S.demo ? 'demo' : (S.videoName || 'motion')).replace(/[^\w-]+/g, '_');
+$('btnExpRig').onclick = () => {
+  try {
+    const r = S.rig, frames = bake(r);
+    const bytes = buildFBX({ skel: r.skel, posMul: 100, unitScale: 1, fps: S.fps, animated: Object.values(r.roles), transNode: r.rt.hips, frames, takeName: baseName() });
+    download(bytes, `${baseName()}_rig.fbx`);
+    toast(`FBX exportiert: ${frames.length} Bilder, ${Object.keys(r.roles).length} animierte Bones.`);
+  } catch (e) { console.error(e); toast('Export fehlgeschlagen: ' + e.message, true); }
+};
+async function imageToPng(img) {
+  if (!img) return null;
+  try {
+    const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight; if (!w || !h) return null;
+    const sc = Math.min(1, 4096 / Math.max(w, h));
+    const cv = document.createElement('canvas'); cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
+    return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+  } catch (e) { console.warn('texture export skipped', e); return null; }
+}
+const attrArray = (attr, Ctor) => {
+  if (!attr) return null;
+  const n = attr.count, sz = attr.itemSize, out = new Ctor(n * sz);
+  for (let k = 0; k < n; k++) for (let c = 0; c < sz; c++) out[k * sz + c] = attr.getComponent(k, c);
+  return out;
+};
+async function meshData(c) {
+  const list = [], texCache = new Map();
+  for (const o of c.meshes) {
+    const idx = c.index.get(o); if (idx == null) continue;
+    const g = o.geometry; if (!g || !g.attributes.position) continue;
+    if (!g.attributes.normal) g.computeVertexNormals();
+    const nv = g.attributes.position.count;
+    const indices = g.index ? Uint32Array.from(g.index.array) : Uint32Array.from({ length: nv }, (_, k) => k);
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    let triMat = null;
+    if (Array.isArray(o.material) && g.groups.length) {
+      triMat = new Int32Array(indices.length / 3);
+      for (const gr of g.groups) for (let t = Math.floor(gr.start / 3); t < Math.min(triMat.length, Math.floor((gr.start + gr.count) / 3)); t++) triMat[t] = gr.materialIndex || 0;
+    }
+    const materials = [];
+    for (const m of mats) {
+      const col = m && m.color ? m.color.clone().convertLinearToSRGB().toArray() : [0.8, 0.8, 0.8];
+      let png = null;
+      const img = m && m.map && m.map.image;
+      if (img) { if (!texCache.has(img)) texCache.set(img, await imageToPng(img)); png = texCache.get(img); }
+      materials.push({ name: (m && m.name) || 'Material', color: col, png });
+    }
+    let skin = null;
+    if (o.isSkinnedMesh && o.skeleton && g.attributes.skinIndex) {
+      skin = {
+        boneNodes: o.skeleton.bones.map((b) => (c.index.has(b) ? c.index.get(b) : -1)),
+        boneInverses: o.skeleton.boneInverses.map((m) => m.elements.slice()),
+        bindMatrix: o.bindMatrix.elements.slice(),
+        skinIndex: attrArray(g.attributes.skinIndex, Uint16Array), skinWeight: attrArray(g.attributes.skinWeight, Float32Array), itemSize: g.attributes.skinIndex.itemSize,
+      };
+    }
+    list.push({ node: idx, name: o.name || 'Mesh', positions: attrArray(g.attributes.position, Float32Array), normals: attrArray(g.attributes.normal, Float32Array),
+      uvs: attrArray(g.attributes.uv, Float32Array), flipV: c.flipV, indices, triMat, materials, skin });
+  }
+  return list;
+}
+async function exportCharacter(withMesh) {
+  const c = S.char; if (!c || !c.rt) return;
+  const btn = withMesh ? $('btnExpChar') : $('btnExpCharAnim'); btn.disabled = true;
+  try {
+    const frames = bake(c);
+    const animated = [...new Set(Object.values(c.roles))].filter((i) => c.skel.nodes[i].kind === 'bone');
+    const sel = $('selUnit').value, unitM = sel === 'm' || (sel === 'auto' && c.unit === 'm');
+    let skel = c.skel, meshes = [];
+    if (withMesh) meshes = await meshData(c);
+    else skel = { nodes: c.skel.nodes.map((n) => (n.kind === 'mesh' ? { ...n, kind: 'null' } : n)) };
+    const r = c.root, rootMatrix = m4.compose(r.position.toArray(), r.quaternion.toArray(), r.scale.toArray());
+    const bytes = buildFBX({ skel, posMul: 1, unitScale: unitM ? 100 : 1, fps: S.fps, animated, transNode: c.rt.hips, frames, meshes, rootMatrix, takeName: baseName() });
+    const nm = (c.name || 'character').replace(/[^\w-]+/g, '_');
+    download(bytes, withMesh ? `${nm}_${baseName()}.fbx` : `${nm}_${baseName()}_anim.fbx`);
+    toast(`FBX exportiert: ${frames.length} Bilder, ${animated.length} animierte Bones${withMesh ? `, ${meshes.length} Meshes` : ''}.`);
+  } catch (e) { console.error(e); toast('Export fehlgeschlagen: ' + e.message, true); }
+  finally { btn.disabled = false; }
+}
+$('btnExpChar').onclick = () => exportCharacter(true);
+$('btnExpCharAnim').onclick = () => exportCharacter(false);
+
+// ---------------- tracking data JSON ----------------
+$('btnSaveJson').onclick = () => {
+  const data = { format: 'motion-rig-studio/1', fps: S.fps, width: S.vidW, height: S.vidH, video: S.videoName,
+    frames: S.raw.map((f) => (f ? { w: Array.from(f.w, (x) => +x.toFixed(4)), i: Array.from(f.i, (x) => +x.toFixed(4)), v: Array.from(f.v, (x) => +x.toFixed(2)) } : null)) };
+  download(JSON.stringify(data), `${baseName()}_tracking.json`, 'application/json');
+};
+$('fileJson').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d.frames || !Array.isArray(d.frames)) throw new Error('Keine Tracking-Daten gefunden.');
+    S.raw = d.frames.map((x) => (x ? { w: Float32Array.from(x.w), i: Float32Array.from(x.i), v: Float32Array.from(x.v || new Array(33).fill(1)) } : null));
+    S.fps = d.fps || 30; S.vidW = d.width || 720; S.vidH = d.height || 1280; S.videoName = d.video || f.name.replace(/\.json$/i, '');
+    const sameVideo = S.videoURL && Math.abs((video.duration || 0) - S.raw.length / S.fps) < 0.5;
+    if (!sameVideo) { S.demo = true; $('demoBadge').hidden = false; $('demoBadge').textContent = 'Geladene Tracking-Daten (ohne Video)'; }
+    reprocess(); $('tagTrack').textContent = 'aus Datei'; $('stepTrack').classList.add('done');
+    S.clock = 0; showFrame(0); setPlaying(true); sizeOverlay();
+    toast(`${S.raw.length} Bilder Tracking-Daten geladen.`);
+  } catch (err) { toast('Datei konnte nicht gelesen werden: ' + err.message, true); }
+  e.target.value = '';
+});
+
+
+// ---------------- live camera ----------------
+// One-Euro filter per channel: smooth when still, responsive when moving fast
+class OneEuro {
+  constructor(n) { this.n = n; this.x = null; this.dx = new Float32Array(n); this.t = 0; }
+  filter(v, t, minCutoff, beta) {
+    if (!this.x) { this.x = Float32Array.from(v); this.t = t; return Float32Array.from(v); }
+    const dt = Math.max(1e-3, t - this.t); this.t = t;
+    const a = (fc) => { const r = 2 * Math.PI * fc * dt; return r / (r + 1); };
+    const ad = a(1.0), out = new Float32Array(this.n);
+    for (let k = 0; k < this.n; k++) {
+      const d = (v[k] - this.x[k]) / dt; this.dx[k] += ad * (d - this.dx[k]);
+      const fc = minCutoff + beta * Math.abs(this.dx[k]);
+      this.x[k] += a(fc) * (v[k] - this.x[k]); out[k] = this.x[k];
+    }
+    return out;
+  }
+}
+function setLiveUI(on) {
+  $('btnLive').textContent = on ? 'Kamera stoppen' : 'Live-Kamera starten';
+  $('btnLive').classList.toggle('primary', !on);
+  $('btnRec').hidden = !on; $('btnTrack').disabled = on || !S.videoURL;
+  $('scrub').disabled = on; $('btnPlay').disabled = on;
+  $('fileVideo').disabled = on;
+  video.style.transform = on && $('chkMirror').checked ? 'scaleX(-1)' : '';
+}
+async function startLive() {
+  if (S.tracking) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Dieser Browser erlaubt keinen Kamerazugriff. Bitte Chrome oder Edge verwenden.', true, 6000); return; }
+  $('btnLive').disabled = true;
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+  } catch (e) {
+    $('btnLive').disabled = false;
+    toast(e && e.name === 'NotAllowedError' ? 'Kamerazugriff wurde verweigert. Erlaube die Kamera in der Adressleiste und versuche es erneut.' : 'Kamera nicht verfügbar: ' + (e.message || e), true, 7000);
+    return;
+  }
+  try { await ensureEngine($('selQuality').value); } catch (e) {
+    stream.getTracks().forEach((t) => t.stop()); $('btnLive').disabled = false;
+    toast('Tracking-Engine nicht ladbar. Internetverbindung prüfen.', true, 6000); return;
+  }
+  setPlaying(false);
+  if (S.videoURL) { URL.revokeObjectURL(S.videoURL); S.videoURL = null; }
+  video.removeAttribute('src'); video.srcObject = stream; video.muted = true;
+  await video.play().catch(() => {});
+  await new Promise((r) => { if (video.videoWidth) r(); else video.onloadedmetadata = () => r(); setTimeout(r, 3000); });
+  S.vidW = video.videoWidth || 1280; S.vidH = video.videoHeight || 720;
+  S.live = { stream, filter: new OneEuro(165), ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
+  S.demo = false; $('demoBadge').hidden = true;
+  S.raw = []; S.frames = []; S.offsets = []; updateExportButtons();
+  if (!S.rig) setRig(DEFAULT_DIMS);
+  setLiveUI(true); $('btnLive').disabled = false;
+  $('tagTrack').textContent = 'LIVE'; sizeOverlay();
+  $('scrub').max = '0'; $('scrub').value = '0'; $('tc').innerHTML = '<b>LIVE</b>';
+  $('videoMeta').innerHTML = `Live-Kamera ${S.vidW}×${S.vidH}<br>Stell dich so hin, dass der ganze Körper im Bild ist.`;
+}
+function stopLive() {
+  const L = S.live; if (!L) return;
+  if (L.rec) stopRecording();
+  L.stream.getTracks().forEach((t) => t.stop());
+  video.srcObject = null; S.live = null; setLiveUI(false);
+  if (!S.frames.length) { $('tagTrack').textContent = 'Kamera aus'; drawOverlay(null); $('videoMeta').textContent = 'Kamera gestoppt. Lade ein Video oder starte die Kamera erneut.'; }
+}
+$('btnLive').onclick = () => (S.live ? stopLive() : startLive());
+$('chkMirror').addEventListener('change', () => { if (S.live) { video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : ''; S.live.filter = new OneEuro(165); S.live.ref = null; } });
+
+function liveStep(now) {
+  const L = S.live;
+  if (!L || L.busy || video.readyState < 2 || video.currentTime === L.lastVT || !ENG.mode) return;
+  L.lastVT = video.currentTime; L.busy = true;
+  const mirror = $('chkMirror').checked;
+  detect(0, now, mirror).then((fr) => {
+    L.busy = false;
+    if (!S.live) return;
+    L.fpsCount++; if (now - L.fpsT > 1000) { L.fps = L.fpsCount * 1000 / (now - L.fpsT); L.fpsCount = 0; L.fpsT = now; }
+    if (!fr) { drawOverlay(null); $('tagTrack').textContent = 'LIVE · keine Person'; return; }
+    if (L.rec) L.rec.frames.push({ t: (now - L.rec.t0) / 1000, f: fr });
+    // smoothing: slider 0..5 -> min cutoff 4..0.6 Hz
+    const sm = S.smooth, minC = 4 / (1 + sm * 1.1), beta = 0.8;
+    const sv = L.filter.filter([...fr.w, ...fr.i], now / 1000, minC, beta);
+    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v };
+    L.buf.push(f); if (L.buf.length > 90) L.buf.shift();
+    if (!L.dimsSet && L.buf.length >= 30) { const m = measureDims(L.buf); S.srcHipHeight = m.srcHipHeight; S.dims = m.dims; setRig(m.dims); L.dimsSet = true; }
+    if (!L.ref) L.ref = f;
+    let off = [0, 0, 0];
+    if (S.rootMode !== 'off' && L.dimsSet) off = computeRootOffsets([L.ref, f], S.rootMode, S.vidW, S.vidH, S.srcHipHeight)[1];
+    applyPose(S.rig, f.w, off); applyPose(S.char, f.w, off);
+    drawOverlay({ w: f.w, i: f.i });
+    $('tagTrack').textContent = `LIVE · ${Math.round(L.fps)} fps` + (L.rec ? ` · ● REC ${((now - L.rec.t0) / 1000).toFixed(1)} s` : '');
+  }).catch((e) => { L.busy = false; console.warn(e); });
+}
+
+// recording: landmarks + webcam video, resampled to the chosen fps on stop
+function startRecording() {
+  const L = S.live; if (!L || L.rec) return;
+  const rec = { t0: performance.now(), frames: [], chunks: [], mr: null };
+  try {
+    const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+    if (type) { rec.mr = new MediaRecorder(L.stream, { mimeType: type, videoBitsPerSecond: 4e6 }); rec.mr.ondataavailable = (e) => { if (e.data.size) rec.chunks.push(e.data); }; rec.mr.start(250); rec.type = type; }
+  } catch (e) { console.warn('MediaRecorder unavailable', e); rec.mr = null; }
+  rec.t0 = performance.now(); L.rec = rec;
+  $('btnRec').textContent = '■ Aufnahme stoppen'; $('btnRec').classList.add('rec');
+}
+function stopRecording() {
+  const L = S.live; if (!L || !L.rec) return;
+  const rec = L.rec; L.rec = null;
+  $('btnRec').textContent = '● Aufnahme starten'; $('btnRec').classList.remove('rec');
+  const fps = parseFloat($('selFps').value), dur = (performance.now() - rec.t0) / 1000;
+  if (rec.frames.length < 5) { toast('Aufnahme zu kurz oder keine Person erkannt.', true); if (rec.mr) rec.mr.stop(); return; }
+  const n = Math.max(1, Math.floor(dur * fps)), out = new Array(n).fill(null);
+  let j = 0;
+  for (let k = 0; k < n; k++) {
+    const t = k / fps;
+    while (j + 1 < rec.frames.length && Math.abs(rec.frames[j + 1].t - t) <= Math.abs(rec.frames[j].t - t)) j++;
+    if (Math.abs(rec.frames[j].t - t) < 0.12) out[k] = rec.frames[j].f;
+  }
+  const finish = (url) => {
+    S.raw = out; S.fps = fps; S.videoName = 'live_' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    stopLive();
+    if (url) { S.videoURL = url; video.srcObject = null; video.src = url; video.load(); video.style.transform = ''; S.demo = false; }
+    else { S.demo = true; $('demoBadge').hidden = false; $('demoBadge').textContent = 'Live-Aufnahme (ohne Video)'; }
+    S.vidW = S.vidW || 1280;
+    reprocess();
+    $('tagTrack').textContent = `Live-Aufnahme · ${out.filter(Boolean).length}/${n} Bilder`;
+    $('videoMeta').innerHTML = `Live-Aufnahme · ${dur.toFixed(1)} s · ${fps} fps<br>Jetzt Charakter laden und als FBX exportieren.`;
+    $('stepTrack').classList.add('done');
+    S.clock = 0; S.cur = 0; showFrame(0); setPlaying(true);
+    toast('Aufnahme übernommen. Du kannst sie jetzt abspielen und als FBX exportieren.');
+  };
+  if (rec.mr && rec.mr.state !== 'inactive') {
+    rec.mr.onstop = () => finish(rec.chunks.length ? URL.createObjectURL(new Blob(rec.chunks, { type: rec.type })) : null);
+    rec.mr.stop();
+  } else finish(null);
+}
+$('btnRec').onclick = () => { if (!S.live) return; if (S.live.rec) stopRecording(); else startRecording(); };
+
+// ---------------- boot: demo performance ----------------
+(function boot() {
+  const demo = synthPerformance(4, 30);
+  S.raw = demo.frames; S.fps = demo.fps; S.vidW = demo.width; S.vidH = demo.height; S.demo = true;
+  S.smooth = 0; reprocess(); S.smooth = parseFloat($('rngSmooth').value);
+  resize(); showFrame(0); setPlaying(true);
+  updateExportButtons();
+  requestAnimationFrame(loop);
+  window.__mrs = { S, scene, camera, renderer, showFrame, loadCharacterFile };
+})();
+
+</script>
+</body>
+</html>
