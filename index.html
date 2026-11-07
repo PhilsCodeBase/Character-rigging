@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-hq8si+hpXR14YF9InS8tAEXLyDbP2a6n+cV4INpDZck=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-MUI9Ruc76rZVivKJgdlCRAU3GCqwbo7qOt7AKWTVR48=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,7 +91,7 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 .legend { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--fg); background: rgba(13, 16, 20, .75); padding: 6px 8px; border-radius: 4px; pointer-events: none; }
 .viewctl { position: absolute; z-index: 3; display: flex; align-items: center; gap: 2px; background: rgba(13, 16, 20, .82); border: 1px solid var(--line); border-radius: 7px; padding: 3px; }
 .viewctl.env { top: 8px; right: 12px; gap: 8px; padding-left: 9px; font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.viewctl.env select { width: auto; max-width: 150px; min-height: 28px; padding: 3px 6px; font: 13px/1.2 var(--font-ui); letter-spacing: 0; text-transform: none; color: var(--fg); }
+.viewctl.env select { width: auto; max-width: 180px; min-height: 28px; padding: 3px 6px; font: 13px/1.2 var(--font-ui); letter-spacing: 0; text-transform: none; color: var(--fg); }
 .viewctl.zoom { left: 12px; bottom: 8px; }
 .viewctl.zoom button { width: 30px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; }
 .viewctl.zoom button:hover { background: #2a323d; }
@@ -279,13 +279,31 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           <label class="viewctl env"><span id="envLabel">Umgebung</span>
             <select id="selEnv" aria-label="Umgebung">
               <option value="studio" selected>Studio dunkel</option>
-              <option value="potsdamer_platz">Stadtplatz</option>
-              <option value="snowy_park_01">Park im Schnee</option>
-              <option value="forest_slope">Wald</option>
-              <option value="empty_warehouse_01">Lagerhalle</option>
-              <option value="gym_entrance">Foyer</option>
-              <option value="studio_small_09">Fotostudio</option>
-              <option value="lebombo">Wohnraum</option>
+              <optgroup label="Stadt">
+                <option value="potsdamer_platz">Stadtplatz</option>
+                <option value="venice_sunset">Venedig am Abend</option>
+              </optgroup>
+              <optgroup label="Natur">
+                <option value="forest_slope">Wald</option>
+                <option value="autumn_forest_04">Herbstwald</option>
+                <option value="forest_cave">Waldhöhle</option>
+                <option value="rainforest_trail">Regenwald</option>
+                <option value="cannon">Küste</option>
+                <option value="valley_of_desolation">Felsental</option>
+                <option value="aarfontein_sunrise">Steppe im Morgenrot</option>
+                <option value="rogland_clear_night">Sternenhimmel</option>
+              </optgroup>
+              <optgroup label="Schnee">
+                <option value="snowy_park_01">Park im Schnee</option>
+                <option value="passendorf_snow">Schneefeld</option>
+              </optgroup>
+              <optgroup label="Innenräume">
+                <option value="empty_warehouse_01">Lagerhalle</option>
+                <option value="burnt_warehouse">Ausgebrannte Halle</option>
+                <option value="gym_entrance">Foyer</option>
+                <option value="studio_small_09">Fotostudio</option>
+                <option value="lebombo">Wohnraum</option>
+              </optgroup>
             </select>
           </label>
           <div class="viewctl zoom" role="group" aria-label="Zoom">
@@ -1362,6 +1380,16 @@ const ENVS = {
   gym_entrance: { height: 1.6, turn: 1.38, sun: 1.2, hemi: 0.9, shadow: 0.3 },
   studio_small_09: { height: 1.5, turn: 0, sun: 1.4, hemi: 0.9, shadow: 0.3 },
   lebombo: { height: 1.4, turn: 0.35, sun: 1.2, hemi: 0.9, shadow: 0.3 },
+  venice_sunset: { height: 1.7, turn: 2.2, sun: 1.8, hemi: 0.8, shadow: 0.35 },
+  autumn_forest_04: { height: 1.7, turn: 2.07, sun: 1.8, hemi: 0.8, shadow: 0.4 },
+  forest_cave: { height: 1.7, turn: 2.7, sun: 1.2, hemi: 0.9, shadow: 0.3 },
+  rainforest_trail: { height: 1.7, turn: 1.57, sun: 1.5, hemi: 0.8, shadow: 0.35 },
+  cannon: { height: 1.7, turn: 1.7, sun: 1.3, hemi: 1.0, shadow: 0.3 },
+  valley_of_desolation: { height: 1.7, turn: 1.07, sun: 2.0, hemi: 0.7, shadow: 0.45 },
+  aarfontein_sunrise: { height: 1.7, turn: 2.2, sun: 1.5, hemi: 0.7, shadow: 0.35 },
+  rogland_clear_night: { height: 1.7, turn: 2.58, sun: 0.5, hemi: 0.4, shadow: 0.15 },
+  passendorf_snow: { height: 1.7, turn: 0.75, sun: 2.2, hemi: 0.9, shadow: 0.45 },
+  burnt_warehouse: { height: 1.6, turn: 1.1, sun: 1.0, hemi: 0.7, shadow: 0.3 },
 };
 const STUDIO_LOOK = { background: scene.background, fog: scene.fog, sunPos: sun.position.clone(), sun: sun.intensity, hemi: hemi.intensity, shadow: floor.material.opacity };
 // Sphere whose lower half is flattened into a floor, so the feet stand on the ground of the photo.
