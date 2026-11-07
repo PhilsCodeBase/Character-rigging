@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-PzRBcm0bBlIcSpMJxBVQMThkBAx61YpGa+STP4ar9AI=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-hq8si+hpXR14YF9InS8tAEXLyDbP2a6n+cV4INpDZck=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,7 @@
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-ui); overflow: hidden; }
 button, select, input { font: inherit; color: inherit; }
-.app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; height: 100%; }
 header { display: flex; align-items: center; gap: 14px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
 .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .02em; text-transform: uppercase; }
 .brand svg { width: 26px; height: 26px; }
@@ -88,7 +88,17 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 #overlay { pointer-events: none; z-index: 2; }
 #gl { position: absolute; inset: 0; }
 #gl canvas { display: block; width: 100% !important; height: 100% !important; }
-.legend { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--muted); pointer-events: none; }
+.legend { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--fg); background: rgba(13, 16, 20, .75); padding: 6px 8px; border-radius: 4px; pointer-events: none; }
+.viewctl { position: absolute; z-index: 3; display: flex; align-items: center; gap: 2px; background: rgba(13, 16, 20, .82); border: 1px solid var(--line); border-radius: 7px; padding: 3px; }
+.viewctl.env { top: 8px; right: 12px; gap: 8px; padding-left: 9px; font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.viewctl.env select { width: auto; max-width: 150px; min-height: 28px; padding: 3px 6px; font: 13px/1.2 var(--font-ui); letter-spacing: 0; text-transform: none; color: var(--fg); }
+.viewctl.zoom { left: 12px; bottom: 8px; }
+.viewctl.zoom button { width: 30px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; }
+.viewctl.zoom button:hover { background: #2a323d; }
+.viewctl.zoom button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.viewctl.zoom button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.viewctl.zoom output { min-width: 46px; text-align: center; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+@media (pointer: coarse) { .viewctl.zoom button { width: 44px; height: 44px; } .viewctl.env select { min-height: 44px; } }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--accent); }
 .legend span.r::before { background: var(--accent-2); }
 .transport { display: flex; align-items: center; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 12px 16px; border-top: 1px solid var(--line); background: var(--panel); }
@@ -101,16 +111,22 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 .toast.err { border-color: var(--err); }
 .fatal { position: fixed; inset: auto 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px; z-index: 60; background: #2a1517; border: 1px solid var(--err); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; max-width: 720px; margin: 0 auto; }
 .fatal b { color: var(--err); }
-.demo-badge { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3; font-size: 12px; color: var(--muted); background: rgba(13,16,20,.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.demo-badge { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 3; font-size: 12px; color: var(--muted); background: rgba(13,16,20,.8); border: 1px solid var(--line); border-radius: 14px; padding: 6px 12px; width: max-content; max-width: calc(100% - 24px); text-align: center; }
 @media (max-width: 900px) {
   body { overflow: auto; }
   .app { height: auto; }
-  .main { grid-template-columns: 1fr; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  header { flex-wrap: wrap; gap: 8px 14px; }
   aside { border-right: 0; border-bottom: 1px solid var(--line); order: 2; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .stage { order: 1; }
   .monitors { grid-template-columns: 1fr 1fr; height: 62vh; }
   header .hint { display: none; }
   .tc { min-width: 0; }
+  .viewctl.env { top: 38px; }
+  .viewctl.env #envLabel { display: none; }
+  .viewctl.env { padding-left: 3px; }
+  .legend { bottom: auto; top: 8px; right: 12px; }
+  #mon3d .tag { max-width: calc(100% - 110px); line-height: 1.3; }
 }
 @media (max-width: 560px) { .monitors { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: 92vh; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -260,6 +276,24 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
         <div class="mon" id="mon3d">
           <span class="tag">3D · <em id="tag3d">Bone-Rig</em></span>
           <div id="gl"></div>
+          <label class="viewctl env"><span id="envLabel">Umgebung</span>
+            <select id="selEnv" aria-label="Umgebung">
+              <option value="studio" selected>Studio dunkel</option>
+              <option value="potsdamer_platz">Stadtplatz</option>
+              <option value="snowy_park_01">Park im Schnee</option>
+              <option value="forest_slope">Wald</option>
+              <option value="empty_warehouse_01">Lagerhalle</option>
+              <option value="gym_entrance">Foyer</option>
+              <option value="studio_small_09">Fotostudio</option>
+              <option value="lebombo">Wohnraum</option>
+            </select>
+          </label>
+          <div class="viewctl zoom" role="group" aria-label="Zoom">
+            <button type="button" id="btnZoomOut" aria-label="Herauszoomen" title="Herauszoomen">−</button>
+            <output id="zoomVal" aria-live="off">100 %</output>
+            <button type="button" id="btnZoomIn" aria-label="Hineinzoomen" title="Hineinzoomen">+</button>
+            <button type="button" id="btnZoomHome" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3.2h3.2"/></svg></button>
+          </div>
           <div class="legend"><span>links</span><span class="r">rechts</span></div>
         </div>
       </div>
@@ -1278,8 +1312,10 @@ scene.fog = new THREE.Fog('#0b0e12', 7, 16);
 const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
 camera.position.set(0.4, 1.35, 4.2);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.95, 0); controls.enableDamping = true; controls.update();
-scene.add(new THREE.HemisphereLight('#cfe6ff', '#1a1410', 1.1));
+controls.target.set(0, 0.95, 0); controls.enableDamping = true;
+controls.zoomToCursor = true; controls.minDistance = 0.25; controls.maxDistance = 9;
+controls.update(); controls.saveState();
+const hemi = new THREE.HemisphereLight('#cfe6ff', '#1a1410', 1.1); scene.add(hemi);
 const sun = new THREE.DirectionalLight('#ffffff', 2.0);
 sun.position.set(2.5, 5, 3); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 15 });
@@ -1287,6 +1323,121 @@ scene.add(sun);
 const grid = new THREE.GridHelper(12, 24, '#2a3340', '#1a2029'); scene.add(grid);
 const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.35 }));
 floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+// ---------------- viewport zoom ----------------
+// Wheel, trackpad and pinch come from OrbitControls; the buttons ease towards a target distance.
+const HOME_DIST = camera.position.distanceTo(controls.target);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const ZOOM_STEP = 1.3;
+let zoomGoal = null, zoomShown = 100;
+function zoomBy(factor) {
+  const from = zoomGoal ?? camera.position.distanceTo(controls.target);
+  zoomGoal = THREE.MathUtils.clamp(from * factor, controls.minDistance, controls.maxDistance);
+}
+function stepZoom(dt) {
+  const off = camera.position.clone().sub(controls.target), d = off.length();
+  if (zoomGoal !== null) {
+    const k = reduceMotion.matches ? 1 : 1 - Math.exp(-dt * 12);
+    const next = Math.abs(zoomGoal - d) < 0.002 ? zoomGoal : d + (zoomGoal - d) * k;
+    camera.position.copy(controls.target).addScaledVector(off.normalize(), next);
+    if (next === zoomGoal) zoomGoal = null;
+  }
+  const pct = Math.round(HOME_DIST / camera.position.distanceTo(controls.target) * 100);
+  if (pct !== zoomShown) { zoomShown = pct; $('zoomVal').textContent = pct + ' %'; }
+}
+$('btnZoomIn').onclick = () => zoomBy(1 / ZOOM_STEP);
+$('btnZoomOut').onclick = () => zoomBy(ZOOM_STEP);
+$('btnZoomHome').onclick = () => { zoomGoal = null; controls.reset(); };
+for (const ev of ['wheel', 'pointerdown']) renderer.domElement.addEventListener(ev, () => { zoomGoal = null; }, { passive: true });
+
+// ---------------- environments ----------------
+// 360° photos by Poly Haven (polyhaven.com, CC0), stored in env/ and loaded on first use.
+// height: camera height of the photo in metres, sets the scale of the projected floor.
+// turn: heading of the photo in radians. sun, hemi, shadow: light levels that suit the photo.
+const ENVS = {
+  potsdamer_platz: { height: 1.7, turn: 2.95, sun: 2.2, hemi: 0.7, shadow: 0.4 },
+  snowy_park_01: { height: 1.7, turn: 1.7, sun: 1.4, hemi: 1.0, shadow: 0.3 },
+  forest_slope: { height: 1.7, turn: 0.94, sun: 1.8, hemi: 0.8, shadow: 0.4 },
+  empty_warehouse_01: { height: 1.6, turn: 1.88, sun: 1.2, hemi: 0.9, shadow: 0.3 },
+  gym_entrance: { height: 1.6, turn: 1.38, sun: 1.2, hemi: 0.9, shadow: 0.3 },
+  studio_small_09: { height: 1.5, turn: 0, sun: 1.4, hemi: 0.9, shadow: 0.3 },
+  lebombo: { height: 1.4, turn: 0.35, sun: 1.2, hemi: 0.9, shadow: 0.3 },
+};
+const STUDIO_LOOK = { background: scene.background, fog: scene.fog, sunPos: sun.position.clone(), sun: sun.intensity, hemi: hemi.intensity, shadow: floor.material.opacity };
+// Sphere whose lower half is flattened into a floor, so the feet stand on the ground of the photo.
+const dome = (() => {
+  const geo = new THREE.SphereGeometry(30, 128, 64); geo.scale(1, 1, -1);
+  const pos = geo.getAttribute('position'), p = new THREE.Vector3(), edge = -1.5;
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i);
+    if (p.y < 0) { p.multiplyScalar(p.y < edge ? -1 / p.y : 1 - p.y * p.y / (3 * edge * edge)); p.toArray(pos.array, 3 * i); }
+  }
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ fog: false, depthWrite: false, toneMapped: false }));
+  mesh.renderOrder = -1; mesh.frustumCulled = false; mesh.visible = false; scene.add(mesh);
+  return mesh;
+})();
+// Direction of the brightest part of the sky, so shadows fall the same way as in the photo.
+function findLightDir(img) {
+  const W = 128, H = 32, c = document.createElement('canvas'); c.width = W; c.height = H * 2;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, W, H * 2);
+  const px = g.getImageData(0, 0, W, H).data, dir = new THREE.Vector3();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, lum = (0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]) / 255;
+    const lat = Math.PI / 2 * (1 - (y + 0.5) / H), lon = 2 * Math.PI * (x + 0.5) / W, w = lum ** 6 * Math.cos(lat);
+    dir.x -= w * Math.cos(lon) * Math.cos(lat); dir.y += w * Math.sin(lat); dir.z -= w * Math.sin(lon) * Math.cos(lat);
+  }
+  if (dir.lengthSq() < 1e-9) dir.set(0, 1, 0);
+  dir.normalize(); dir.y = Math.max(dir.y, 0.5);
+  return dir.normalize();
+}
+const envCache = new Map();
+const pmrem = new THREE.PMREMGenerator(renderer);
+function loadEnv(id) {
+  if (!envCache.has(id)) {
+    const job = new THREE.TextureLoader().loadAsync(`env/${id}.webp`).then((tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace; tex.mapping = THREE.EquirectangularReflectionMapping;
+      tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return { tex, light: pmrem.fromEquirectangular(tex).texture, dir: findLightDir(tex.image) };
+    });
+    job.catch(() => envCache.delete(id));
+    envCache.set(id, job);
+  }
+  return envCache.get(id);
+}
+function applyEnv(cfg, env) {
+  const on = !!cfg, look = cfg || STUDIO_LOOK;
+  scene.background = on ? null : STUDIO_LOOK.background;
+  scene.fog = on ? null : STUDIO_LOOK.fog;
+  scene.environment = on ? env.light : null;
+  grid.visible = !on; dome.visible = on;
+  if (on) {
+    dome.material.map = env.tex; dome.material.needsUpdate = true;
+    dome.scale.setScalar(cfg.height); dome.position.y = cfg.height - 0.01; dome.rotation.y = cfg.turn;
+    sun.position.copy(env.dir).applyAxisAngle(THREE.Object3D.DEFAULT_UP, cfg.turn).multiplyScalar(6);
+  } else sun.position.copy(STUDIO_LOOK.sunPos);
+  sun.intensity = look.sun; hemi.intensity = look.hemi; floor.material.opacity = look.shadow;
+  controls.maxPolarAngle = on ? Math.PI * 0.49 : Math.PI; // stay above the photo's floor
+}
+let envCurrent = 'studio', envRequest = 0;
+async function selectEnv(id) {
+  const req = ++envRequest, label = $('envLabel');
+  if (id === 'studio') { applyEnv(null); envCurrent = id; label.textContent = 'Umgebung'; return; }
+  label.textContent = 'Lädt …';
+  try {
+    const env = await loadEnv(id);
+    if (req !== envRequest) return;
+    applyEnv(ENVS[id], env); envCurrent = id;
+  } catch (err) {
+    if (req !== envRequest) return;
+    console.error(err);
+    $('selEnv').value = envCurrent;
+    toast(location.protocol === 'file:'
+      ? 'Umgebungen laden nur über http(s), z. B. GitHub Pages, nicht aus einer per Doppelklick geöffneten Datei.'
+      : 'Die Umgebung konnte nicht geladen werden. Prüfe die Verbindung und versuche es noch einmal.', true, 7000);
+  }
+  if (req === envRequest) label.textContent = 'Umgebung';
+}
+$('selEnv').addEventListener('change', (e) => selectEnv(e.target.value));
 
 function resize() {
   const r = glWrap.getBoundingClientRect();
@@ -1448,6 +1599,7 @@ function loop(now) {
       else { showFrame(Math.min(S.frames.length - 1, video.currentTime * S.fps)); if (video.ended) { video.currentTime = 0; video.play().catch(() => {}); } }
     }
   }
+  stepZoom(dt);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
