@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-gw7yb0YmqdkAD+4hrr1UPMH7j8UkGfmyEC3yuSsau6s=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-7Z7/kFBVz+CpQ/oHNaLVVQZSVZaZLNpGzucoNqpPu34=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -820,7 +820,8 @@ function makeRetargeter(skel, roles) {
   const restLocal = skel.nodes.map((n) => n.quat);
 
   // W: Float32Array(99) world landmarks (three coords, metres, hip centred)
-  // opts: { offset:[x,y,z] metres in source space, srcHipHeight, hands:[left, right], face }
+  // opts: { offset:[x,y,z] metres in source space, srcHipHeight, hands:[left, right], face, legs }
+  //   legs: 0..1, how far the tracked legs are used (0 = stand normally)
   //   face: Float32Array, [0..3] head rotation quaternion (same axes as W), [4..55] face blendshapes
   //   hands: per side Float32Array (21 hand landmarks × xyz, relative to the wrist, same axes as W) or null
   function solve(W, opts = {}) {
@@ -828,7 +829,10 @@ function makeRetargeter(skel, roles) {
     const lHip = g(LM.L_HIP), rHip = g(LM.R_HIP), lSh = g(LM.L_SH), rSh = g(LM.R_SH);
     const hipC = v3.mid(lHip, rHip), shC = v3.mid(lSh, rSh);
     const torsoUp = v3.sub(shC, hipC);
-    const hipUp = v3.norm(v3.add(v3.norm(torsoUp), [0, 0.6, 0]));
+    const legW = Math.max(0, Math.min(1, opts.legs ?? 1));
+    let hipUp = v3.norm(v3.add(v3.norm(torsoUp), [0, 0.6, 0]));
+    if (legW < 1) hipUp = v3.norm(v3.add(v3.mul(hipUp, legW), [0, 1 - legW, 0])); // standing: hips upright
+    const lat0 = v3.sub(lHip, rHip), fwdH = v3.norm([-lat0[2], 0, lat0[0]]);     // horizontal facing direction
     const Qh = frameQ(v3.sub(lHip, rHip), hipUp, 'x');
     const Qc = frameQ(torsoUp, v3.sub(lSh, rSh), 'y');
     const earL = g(LM.L_EAR), earR = g(LM.R_EAR), earC = v3.mid(earL, earR);
@@ -859,6 +863,13 @@ function makeRetargeter(skel, roles) {
       tgt[s + 'UpperLeg'] = v3.norm(ul); tgt[s + 'LowerLeg'] = v3.norm(ll);
       hingeT[s + 'UpperLeg'] = v3.cross(v3.norm(ul), v3.norm(ll));
       tgt[s + 'Foot'] = v3.norm(v3.sub(g(FT), g(AN)));
+      if (legW < 1) { // blend towards a normal standing pose
+        const mix = (stand, tr) => v3.norm(v3.add(v3.mul(stand, 1 - legW), v3.mul(tr, legW)));
+        tgt[s + 'UpperLeg'] = mix([0, -1, 0], tgt[s + 'UpperLeg']);
+        tgt[s + 'LowerLeg'] = mix([0, -1, 0], tgt[s + 'LowerLeg']);
+        tgt[s + 'Foot'] = mix(v3.norm(v3.add(fwdH, [0, -0.35, 0])), tgt[s + 'Foot']);
+        hingeT[s + 'UpperLeg'] = v3.mul(hingeT[s + 'UpperLeg'], legW);
+      }
     }
 
     const wq = new Array(N), local = new Array(N);
@@ -1010,6 +1021,17 @@ function fillAndSmooth(frames, sigma) {
       for (let c = 0; c < 2; c++) f.i[j * 2 + c] = A.i[j * 2 + c] + (B.i[j * 2 + c] - A.i[j * 2 + c]) * t;
     }
   }
+  // leg weight per frame (frames without a person take it from their neighbours)
+  const LW = (() => {
+    const raw = out.map((f, k) => (f.filled ? null : legWeight(f)));
+    let pv = -1;
+    for (let k = 0; k < n; k++) {
+      if (raw[k] != null) { pv = k; continue; }
+      let nx = -1; for (let q = k + 1; q < n; q++) if (raw[q] != null) { nx = q; break; }
+      raw[k] = pv >= 0 && nx >= 0 ? raw[pv] + (raw[nx] - raw[pv]) * (k - pv) / (nx - pv) : raw[pv >= 0 ? pv : nx] ?? 1;
+    }
+    return raw.map((_, k) => { let s2 = 0, ws = 0; for (let q = -12; q <= 12; q++) { const v = raw[Math.min(n - 1, Math.max(0, k + q))], wgt = Math.exp(-(q * q) / 32); s2 += v * wgt; ws += wgt; } return s2 / ws; });
+  })();
   // 4) hands and face
   const handTracks = [0, 1].map((s) => fillTrack(n, (k) => (src[k] && src[k].hands && src[k].hands[s]) || null, 8, sigma * 0.7));
   let lastQ = null;
@@ -1031,7 +1053,7 @@ function fillAndSmooth(frames, sigma) {
     }
     return e;
   };
-  if (!(sigma > 0.05)) return out.map((f, k) => ({ ...f, ...extras(k) }));
+  if (!(sigma > 0.05)) return out.map((f, k) => ({ ...f, lw: LW[k], ...extras(k) }));
   // 5) single-frame spikes removed (median), then Gaussian smoothing
   const mr = sigma >= 1 ? 2 : 1;
   const med = (key, len) => out.map((_, k) => {
@@ -1044,19 +1066,22 @@ function fillAndSmooth(frames, sigma) {
     return r;
   });
   const MW = med('w', 99), MI = med('i', 66);
-  const rad = Math.ceil(sigma * 3), ker = [];
-  for (let j = -rad; j <= rad; j++) ker.push(Math.exp(-(j * j) / (2 * sigma * sigma)));
-  const sm = (arr, len) => arr.map((_, k) => {
+  // legs and feet wobble most (above all in depth), so they are smoothed more strongly
+  const kernel = (sg) => { const rad = Math.ceil(sg * 3), ker = []; for (let j = -rad; j <= rad; j++) ker.push(Math.exp(-(j * j) / (2 * sg * sg))); return { rad, ker }; };
+  const KB = kernel(sigma), KL = kernel(sigma * 1.6 + 0.4), KZ = kernel((sigma * 1.6 + 0.4) * 1.4);
+  const isLeg = (j) => j >= 25 && j <= 32;
+  const sm = (arr, len, dims) => arr.map((_, k) => {
     const r = new Float32Array(len);
     for (let c = 0; c < len; c++) {
+      const j = Math.floor(c / dims), K = !isLeg(j) ? KB : dims === 3 && c % 3 === 2 ? KZ : KL;
       let s = 0, ws = 0;
-      for (let j = -rad; j <= rad; j++) { const q = Math.min(n - 1, Math.max(0, k + j)); const wgt = ker[j + rad]; s += arr[q][c] * wgt; ws += wgt; }
+      for (let q = -K.rad; q <= K.rad; q++) { const fr = Math.min(n - 1, Math.max(0, k + q)), wgt = K.ker[q + K.rad]; s += arr[fr][c] * wgt; ws += wgt; }
       r[c] = s / ws;
     }
     return r;
   });
-  const W = sm(MW, 99), I = sm(MI, 66);
-  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled, ...extras(k) }));
+  const W = sm(MW, 99, 3), I = sm(MI, 66, 2);
+  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled, lw: LW[k], ...extras(k) }));
 }
 
 const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
@@ -1072,16 +1097,29 @@ function measureDims(frames) {
     acc.upperArm.push((d(LM.L_SH, LM.L_EL) + d(LM.R_SH, LM.R_EL)) / 2);
     acc.foreArm.push((d(LM.L_EL, LM.L_WR) + d(LM.R_EL, LM.R_WR)) / 2);
     acc.hand.push((v3.len(v3.sub(v3.mid(g(LM.L_INDEX), g(LM.L_PINKY)), g(LM.L_WR))) + v3.len(v3.sub(v3.mid(g(LM.R_INDEX), g(LM.R_PINKY)), g(LM.R_WR)))) / 2);
+    acc.neckHead.push(v3.len(v3.sub(v3.mid(g(LM.L_EAR), g(LM.R_EAR)), v3.mid(g(LM.L_SH), g(LM.R_SH)))));
+    if ((f.lw ?? legWeight(f)) < 0.5) continue; // legs not in the picture: their lengths would be guesses
     acc.thigh.push((d(LM.L_HIP, LM.L_KNEE) + d(LM.R_HIP, LM.R_KNEE)) / 2);
     acc.shin.push((d(LM.L_KNEE, LM.L_ANK) + d(LM.R_KNEE, LM.R_ANK)) / 2);
     acc.foot.push((d(LM.L_ANK, LM.L_FOOT) + d(LM.R_ANK, LM.R_FOOT)) / 2);
-    acc.neckHead.push(v3.len(v3.sub(v3.mid(g(LM.L_EAR), g(LM.R_EAR)), v3.mid(g(LM.L_SH), g(LM.R_SH)))));
     hh.push(-footMinY(f.w));
   }
   const dims = {};
   for (const k of Object.keys(DEFAULT_DIMS)) { const m = median(acc[k]); dims[k] = m > 0.01 ? m : DEFAULT_DIMS[k]; }
   const srcHipHeight = median(hh) > 0.2 ? median(hh) : dims.thigh + dims.shin + ANKLE_H;
   return { dims, srcHipHeight };
+}
+// How far the legs can be trusted in a frame: 1 = clearly visible, 0 = not in the picture.
+// Without legs the body stands normally (legs straight, feet forward, hips upright, no height change).
+const LEG_JOINTS = [25, 26, 27, 28]; // knees and ankles
+function legWeight(f) {
+  if (!f || !f.v) return 1;
+  let sum = 0;
+  for (const j of LEG_JOINTS) {
+    const x = f.i ? f.i[j * 2] : 0.5, y = f.i ? f.i[j * 2 + 1] : 0.5;
+    sum += x > 0 && x < 1 && y > 0 && y < 1 ? f.v[j] : 0;
+  }
+  return Math.max(0, Math.min(1, (sum / LEG_JOINTS.length - 0.35) / 0.3));
 }
 function footMinY(W) {
   let m = Infinity; for (const i of [LM.L_ANK, LM.R_ANK, LM.L_HEEL, LM.R_HEEL, LM.L_FOOT, LM.R_FOOT]) m = Math.min(m, W[i * 3 + 1]); return m;
@@ -1102,15 +1140,15 @@ function computeRootOffsets(frames, mode, vidW, vidH, srcHipHeight) {
   }
   const s = median(mpp) || 0.003;
   const hip = (f) => [((f.i[46] + f.i[48]) / 2) * vidW, ((f.i[47] + f.i[49]) / 2) * vidH];
-  const h0 = hip(frames[0]);
-  const g0 = -footMinY(frames[0].w) - srcHipHeight;
+  const h0 = hip(frames[0]), lw = (f) => f.lw ?? legWeight(f);
+  const g0 = (-footMinY(frames[0].w) - srcHipHeight) * lw(frames[0]);
   for (let k = 0; k < n; k++) {
     const f = frames[k], h = hip(f);
     const x = (h[0] - h0[0]) * s;
     let y;
     if (mode === 'ground') y = -footMinY(f.w) - srcHipHeight;
     else y = -(h[1] - h0[1]) * s + g0;
-    out[k] = [x, y, 0];
+    out[k] = [x, y * lw(f), 0]; // without visible legs the body keeps its standing height
   }
   return out;
 }
@@ -1517,9 +1555,9 @@ function buildFBX(opts) {
   return writeFBX(top);
 }
 
-return { LM, v3, qt, m4, fk, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
+return { LM, v3, qt, m4, fk, legWeight, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
 })();
-const { LM, v3, qt, m4, fk, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
+const { LM, v3, qt, m4, fk, legWeight, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
 
 // ============================================================
 // APP — UI, three.js viewport, MediaPipe tracking, export
@@ -1866,7 +1904,7 @@ function sampleFrame(f) {
   for (let k = 0; k < 99; k++) w[k] = A.w[k] + (B.w[k] - A.w[k]) * t;
   for (let k = 0; k < 66; k++) im[k] = A.i[k] + (B.i[k] - A.i[k]) * t;
   const oa = S.offsets[a] || [0, 0, 0], ob = S.offsets[b] || oa;
-  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled, hands: lerpHands(A.hands, B.hands, t),
+  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled, hands: lerpHands(A.hands, B.hands, t), lw: (A.lw ?? 1) + ((B.lw ?? 1) - (A.lw ?? 1)) * t,
     face: lerpFace(A.face, B.face, t), faceImg: (t < 0.5 ? A.faceImg || B.faceImg : B.faceImg || A.faceImg) || null };
 }
 
@@ -1885,9 +1923,9 @@ function lerpFace(A, B, t) {
   const l = Math.hypot(r[0], r[1], r[2], r[3]) || 1; for (let c = 0; c < 4; c++) r[c] /= l;
   return r;
 }
-function applyPose(target, w, off, hands, face) {
+function applyPose(target, w, off, hands, face, legs = 1) {
   if (!target || !target.rt) return;
-  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight, hands, face });
+  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight, hands, face, legs });
   target.skel.nodes.forEach((n, i) => { if (n.kind === 'bone') target.objs[i].quaternion.fromArray(r.local[i]); });
   target.objs[r.hips].position.fromArray(r.hipsPos);
   if (target.morphMap) for (const [mesh, k, b] of target.morphMap) mesh.morphTargetInfluences[k] = face ? face[4 + b] : 0;
@@ -1912,7 +1950,7 @@ function buildMorphMap(root) {
 function showFrame(f) {
   S.cur = f;
   const s = sampleFrame(f);
-  if (s) { applyPose(S.rig, s.w, s.off, s.hands, s.face); applyPose(S.char, s.w, s.off, s.hands, s.face); }
+  if (s) { applyPose(S.rig, s.w, s.off, s.hands, s.face, s.lw); applyPose(S.char, s.w, s.off, s.hands, s.face, s.lw); }
   drawOverlay(s);
   const n = S.frames.length;
   $('tc').innerHTML = `Bild <b>${n ? Math.round(f) + 1 : 0}</b> / ${n} · <b>${(f / S.fps).toFixed(2)}</b> s`;
@@ -2464,7 +2502,7 @@ async function runTracking() {
       if (fr) {
         // live preview of the current frame (raw, unsmoothed)
         if (!S.rig) setRig(DEFAULT_DIMS);
-        applyPose(S.rig, fr.w, null, fr.hands, fr.face);
+        applyPose(S.rig, fr.w, null, fr.hands, fr.face, legWeight(fr));
         drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0], hands: fr.hands, faceImg: fr.faceImg });
       } else drawOverlay(null);
       await new Promise((r) => setTimeout(r, 0));
@@ -2607,7 +2645,7 @@ function download(bytes, name, type = 'application/octet-stream') {
 function bake(target) {
   const out = [];
   for (let k = 0; k < S.frames.length; k++) {
-    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight, hands: S.frames[k].hands, face: S.frames[k].face });
+    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight, hands: S.frames[k].hands, face: S.frames[k].face, legs: S.frames[k].lw ?? 1 });
     out.push({ local: r.local, hipsPos: r.hipsPos });
   }
   return out;
@@ -2727,14 +2765,15 @@ $('fileJson').addEventListener('change', async (e) => {
 // One-Euro filter per channel: smooth when still, responsive when moving fast
 class OneEuro {
   constructor(n) { this.n = n; this.x = null; this.dx = new Float32Array(n); this.t = 0; }
-  filter(v, t, minCutoff, beta) {
+  // cut / spd: optional per-channel factors for the minimum cut-off and the speed factor
+  filter(v, t, minCutoff, beta, cut, spd) {
     if (!this.x) { this.x = Float32Array.from(v); this.t = t; return Float32Array.from(v); }
     const dt = Math.max(1e-3, t - this.t); this.t = t;
     const a = (fc) => { const r = 2 * Math.PI * fc * dt; return r / (r + 1); };
     const ad = a(1.0), out = new Float32Array(this.n);
     for (let k = 0; k < this.n; k++) {
       const d = (v[k] - this.x[k]) / dt; this.dx[k] += ad * (d - this.dx[k]);
-      const fc = minCutoff + beta * Math.abs(this.dx[k]);
+      const fc = minCutoff * (cut ? cut[k] : 1) + beta * (spd ? spd[k] : 1) * Math.abs(this.dx[k]);
       this.x[k] += a(fc) * (v[k] - this.x[k]); out[k] = this.x[k];
     }
     return out;
@@ -2803,6 +2842,13 @@ $('chkSwap').addEventListener('change', () => {
 });
 
 const REACT = { fast: [2.5, 6], balanced: [1.2, 2], calm: [0.6, 0.8] }; // [min cut-off Hz, speed factor]
+// Legs and feet are filtered more strongly than the rest, depth (z) most; fast steps still come through.
+const LEG_CUT = new Float32Array(165).fill(1), LEG_SPD = new Float32Array(165).fill(1);
+for (let j = 25; j <= 32; j++) {
+  for (let c = 0; c < 3; c++) LEG_CUT[j * 3 + c] = c === 2 ? 0.3 : 0.5;
+  LEG_SPD[j * 3 + 2] = 0.35;
+  LEG_CUT[99 + j * 2] = LEG_CUT[99 + j * 2 + 1] = 0.5;
+}
 function liveStep(now) {
   const L = S.live;
   if (!L || L.busy || video.readyState < 2 || video.currentTime === L.lastVT || !ENG.mode) return;
@@ -2822,7 +2868,9 @@ function liveStep(now) {
       for (let c = 0; c < 3; c++) input[j * 3 + c] = L.filter.x[j * 3 + c];
       for (let c = 0; c < 2; c++) input[99 + j * 2 + c] = L.filter.x[99 + j * 2 + c];
     }
-    const sv = L.filter.filter(input, now / 1000, minC, beta);
+    const sv = L.filter.filter(input, now / 1000, minC, beta, LEG_CUT, LEG_SPD);
+    const lwRaw = legWeight(fr), lwDt = L.lwT ? Math.min(0.2, (now - L.lwT) / 1000) : 1; L.lwT = now;
+    L.lw = L.lw == null ? lwRaw : L.lw + (lwRaw - L.lw) * (1 - Math.exp(-lwDt / 0.25)); // fade over ~¼ s
     let face = null;
     if (faceWanted()) {
       if (fr.face) {
@@ -2842,13 +2890,13 @@ function liveStep(now) {
         L.hfilter[s] = new OneEuro(105); return null;
       });
     }
-    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v, hands, face };
+    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v, hands, face, lw: L.lw };
     L.buf.push(f); if (L.buf.length > 90) L.buf.shift();
     if (!L.dimsSet && L.buf.length >= 30) { const m = measureDims(L.buf); S.srcHipHeight = m.srcHipHeight; S.dims = m.dims; setRig(m.dims); L.dimsSet = true; }
     if (!L.ref) L.ref = f;
     let off = [0, 0, 0];
     if (S.rootMode !== 'off' && L.dimsSet) off = computeRootOffsets([L.ref, f], S.rootMode, S.vidW, S.vidH, S.srcHipHeight)[1];
-    applyPose(S.rig, f.w, off, hands, face); applyPose(S.char, f.w, off, hands, face);
+    applyPose(S.rig, f.w, off, hands, face, L.lw); applyPose(S.char, f.w, off, hands, face, L.lw);
     drawOverlay({ w: f.w, i: f.i, hands, faceImg: fr.faceImg });
     $('tagTrack').textContent = `LIVE · ${Math.round(L.fps)} fps` + (L.rec ? ` · ● REC ${((now - L.rec.t0) / 1000).toFixed(1)} s` : '');
   }).catch((e) => { L.busy = false; console.warn(e); });
