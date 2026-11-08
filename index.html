@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-6g6L/LPHnfSc+zQLntCioUjs5dZcKwx07M6Jxg6clF0=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-TcAeyJh2D9eJRZSuPzPnjRYmqDJ+sU+Yg9umlLnhdkg=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -70,6 +70,27 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .kv b { color: var(--fg); font-weight: 500; }
 .toggles { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 .toggles label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.toggles-label { color: var(--muted); font-size: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+.check .meta { font-size: 11.5px; }
+.row > label.btn { flex-direction: row; font-size: 14px; color: var(--fg); }
+.row > label.check { flex: 0 0 auto; flex-direction: row; color: var(--fg); font-size: 13px; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+details.more { border-top: 1px solid var(--line); padding-top: 8px; }
+details.more summary { cursor: pointer; font-size: 12.5px; color: var(--muted); list-style: none; display: flex; align-items: center; gap: 6px; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "›"; display: inline-block; width: 10px; transition: transform .15s; font-size: 15px; line-height: 1; }
+details.more[open] summary::before { transform: rotate(90deg); }
+details.more summary:hover { color: var(--fg); }
+.more-body { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.dlg { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--fg); padding: 18px; width: min(560px, calc(100% - 32px)); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+.dlg::backdrop { background: rgba(5, 7, 10, .7); }
+.dlg h2 { margin: 0 0 12px; font: 600 15px/1.2 var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.dlg video { display: block; width: 100%; max-height: 50vh; background: #000; border-radius: 8px; }
+.dlg p { margin: 10px 0 14px; }
+.dlg-actions { justify-content: flex-end; }
 details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 .maptable { display: grid; grid-template-columns: 1fr 1.4fr; gap: 4px 8px; margin-top: 8px; align-items: center; font-size: 12px; }
 .maptable select { padding: 3px 5px; font-size: 12px; }
@@ -86,11 +107,14 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 #overlay { pointer-events: none; z-index: 2; }
 #gl { position: absolute; inset: 0; }
 #gl canvas { display: block; width: 100% !important; height: 100% !important; }
-.legend { position: absolute; right: 12px; bottom: 10px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--fg); background: rgba(13, 16, 20, .75); padding: 6px 8px; border-radius: 4px; pointer-events: none; }
+.legend { position: absolute; left: 12px; top: 38px; z-index: 3; display: flex; gap: 12px; font: 11px/1 var(--font-mono); color: var(--fg); background: rgba(13, 16, 20, .75); padding: 6px 8px; border-radius: 4px; pointer-events: none; }
 .viewctl { position: absolute; z-index: 3; display: flex; align-items: center; gap: 2px; background: rgba(13, 16, 20, .82); border: 1px solid var(--line); border-radius: 7px; padding: 3px; }
 .viewctl.env { top: 8px; right: 12px; gap: 8px; padding-left: 9px; font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .viewctl.env select { width: auto; max-width: 180px; min-height: 28px; padding: 3px 6px; font: 13px/1.2 var(--font-ui); letter-spacing: 0; text-transform: none; color: var(--fg); }
 .viewctl.zoom { left: 12px; bottom: 8px; }
+.viewctl.zoom.actions { left: auto; right: 12px; }
+.viewctl.zoom button.rec { width: auto; padding: 0 10px 0 8px; gap: 6px; font: 500 12.5px/1 var(--font-ui); }
+.viewctl.zoom button.rec svg { width: 11px; height: 11px; }
 .viewctl.zoom button { width: 30px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; }
 .viewctl.zoom button:hover { background: #2a323d; }
 .viewctl.zoom button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -133,10 +157,8 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
   .monitors { grid-template-columns: 1fr 1fr; height: 62vh; }
   header .hint { display: none; }
   .tc { min-width: 0; }
-  .viewctl.env { top: 38px; }
   .viewctl.env #envLabel { display: none; }
   .viewctl.env { padding-left: 3px; }
-  .legend { bottom: auto; top: 8px; right: 12px; }
   #mon3d .tag { max-width: calc(100% - 110px); line-height: 1.3; }
 }
 @media (max-width: 560px) { .monitors { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: 92vh; } }
@@ -173,68 +195,75 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
   <div class="main">
     <aside>
       <section class="step" id="stepVideo">
-        <h2><span class="n">1</span>Video oder Live-Kamera</h2>
+        <h2><span class="n">1</span>Bewegungsquelle</h2>
         <label class="drop" id="dropVideo">
           <input type="file" id="fileVideo" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv">
           <strong>Video wählen oder hierher ziehen</strong>
           MP4, MOV, WebM · eine Person, ganzer Körper im Bild
         </label>
+        <div class="or"><span>oder</span></div>
         <div class="row">
           <button class="btn primary" id="btnLive" style="flex:1">Live-Kamera starten</button>
-          <label class="toggles" style="flex:0 0 auto"><span><input type="checkbox" id="chkMirror" checked> Spiegeln</span></label>
+          <label class="check"><input type="checkbox" id="chkMirror" checked> Spiegeln</label>
         </div>
+        <label class="field">Live-Reaktion
+          <select id="selReact">
+            <option value="fast" selected>Direkt · schnellste Reaktion</option>
+            <option value="balanced">Ausgewogen</option>
+            <option value="calm">Ruhig · weniger Zittern</option>
+          </select>
+        </label>
         <button class="btn block" id="btnRec" hidden>● Aufnahme starten</button>
         <div class="meta" id="videoMeta">Noch kein Video. Rechts läuft eine Demo-Bewegung.</div>
       </section>
 
       <section class="step" id="stepTrack">
         <h2><span class="n">2</span>Bewegung tracken</h2>
+        <label class="field">Genauigkeit
+          <select id="selQuality">
+            <option value="lite">Lite · schnell, gut für live</option>
+            <option value="full" selected>Full · empfohlen</option>
+            <option value="heavy">Heavy · genau, langsam</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="chkHands"> Hände und Finger tracken <span class="meta">(etwas langsamer)</span></label>
         <div class="row">
-          <label>Modell
-            <select id="selQuality">
-              <option value="lite">Lite (schnell)</option>
-              <option value="full" selected>Full (empfohlen)</option>
-              <option value="heavy">Heavy (genau, langsam)</option>
-            </select>
-          </label>
-          <label>Abtastrate
-            <select id="selFps">
-              <option value="24">24 fps</option>
-              <option value="25">25 fps</option>
-              <option value="30" selected>30 fps</option>
-              <option value="60">60 fps</option>
-            </select>
-          </label>
-        </div>
-        <div class="row">
-          <button class="btn primary" id="btnTrack" disabled style="flex:1">Tracking starten</button>
+          <button class="btn primary" id="btnTrack" disabled style="flex:1">Video tracken</button>
           <button class="btn" id="btnCancel" hidden>Abbrechen</button>
         </div>
         <div class="progress"><i id="prog"></i></div>
-        <div class="meta" id="trackMeta">33 Körperpunkte pro Bild (MediaPipe Pose), daraus 3D-Gelenke in Metern.</div>
-        <div class="row">
-          <label>Glättung <span id="smoothVal" class="meta">1.5</span>
-            <input type="range" id="rngSmooth" min="0" max="5" step="0.25" value="1.5">
-          </label>
-        </div>
-        <div class="row">
-          <label>Root-Bewegung (Hüfte)
-            <select id="selRoot">
-              <option value="ground" selected>Füße am Boden + seitlich aus Bild</option>
-              <option value="image">Komplett aus Bildposition (Sprünge)</option>
-              <option value="off">Aus (auf der Stelle)</option>
-            </select>
-          </label>
-        </div>
+        <div class="meta" id="trackMeta">33 Körperpunkte pro Bild, mit Fingertracking zusätzlich 21 Punkte pro Hand.</div>
+        <details class="more">
+          <summary>Feineinstellungen</summary>
+          <div class="more-body">
+            <label class="field">Abtastrate
+              <select id="selFps">
+                <option value="24">24 fps</option>
+                <option value="25">25 fps</option>
+                <option value="30" selected>30 fps</option>
+                <option value="60">60 fps</option>
+              </select>
+            </label>
+            <label class="field">Glättung <span id="smoothVal" class="meta">1.5</span>
+              <input type="range" id="rngSmooth" min="0" max="5" step="0.25" value="1.5">
+            </label>
+            <label class="field">Root-Bewegung (Hüfte)
+              <select id="selRoot">
+                <option value="ground" selected>Füße am Boden + seitlich aus Bild</option>
+                <option value="image">Komplett aus Bildposition (Sprünge)</option>
+                <option value="off">Aus (auf der Stelle)</option>
+              </select>
+            </label>
+          </div>
+        </details>
       </section>
 
       <section class="step" id="stepChar">
         <h2><span class="n">3</span>3D-Charakter</h2>
-        <p class="sub">Geriggter Charakter in T-Pose (A-Pose geht auch). FBX, GLB oder VRM.</p>
         <label class="drop" id="dropChar">
           <input type="file" id="fileChar" accept=".fbx,.glb,.gltf,.vrm">
           <strong>Charakter wählen oder hierher ziehen</strong>
-          z. B. Mixamo-, Unreal-, Rigify- oder VRM-Rig
+          FBX, GLB oder VRM · geriggt, in T- oder A-Pose
         </label>
         <div class="meta" id="charMeta">Kein Charakter geladen.</div>
         <details class="map" id="mapBox" hidden>
@@ -242,37 +271,37 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           <div class="maptable" id="mapTable"></div>
         </details>
         <div class="toggles">
+          <span class="toggles-label">Anzeigen:</span>
           <label><input type="checkbox" id="chkRig" checked> Tracking-Skelett</label>
           <label><input type="checkbox" id="chkChar" checked> Charakter</label>
-          <label><input type="checkbox" id="chkBones"> Charakter-Bones</label>
+          <label><input type="checkbox" id="chkBones"> Bones</label>
         </div>
       </section>
 
       <section class="step" id="stepExport">
-        <h2><span class="n">4</span>FBX exportieren</h2>
+        <h2><span class="n">4</span>Exportieren</h2>
         <div class="exports">
-          <button class="btn block" id="btnExpRig">Tracking-Skelett + Animation (.fbx)</button>
           <button class="btn primary block" id="btnExpChar" disabled>Charakter + Animation (.fbx)</button>
-          <button class="btn block" id="btnExpCharAnim" disabled>Nur Animation fürs Charakter-Rig (.fbx)</button>
-          <button class="btn block" id="btnExpVideo">3D-Ansicht als Video (.mp4/.webm)</button>
-          <div class="row">
-            <label>Einheit Charakter-Export
-              <select id="selUnit">
-                <option value="auto" selected>Automatisch (FBX → cm, GLB → m)</option>
-                <option value="cm">Zentimeter</option>
-                <option value="m">Meter</option>
-              </select>
-            </label>
-          </div>
-          <p class="note">Skelett-Namen sind Mixamo-kompatibel (Hips, Spine, LeftArm …). Mesh-Export enthält Skinning, Materialien und Basisfarb-Texturen.</p>
-        </div>
-      </section>
-
-      <section class="step">
-        <h2>Tracking-Daten</h2>
-        <div class="row">
-          <button class="btn" id="btnSaveJson" style="flex:1">Speichern (.json)</button>
-          <label class="btn" style="flex:1">Laden<input type="file" id="fileJson" accept=".json" hidden></label>
+          <button class="btn block" id="btnExpVideo">3D-Ansicht als Video</button>
+          <details class="more">
+            <summary>Weitere Exporte und Tracking-Daten</summary>
+            <div class="more-body">
+              <button class="btn block" id="btnExpRig">Tracking-Skelett + Animation (.fbx)</button>
+              <button class="btn block" id="btnExpCharAnim" disabled>Nur Animation fürs Charakter-Rig (.fbx)</button>
+              <label class="field">Einheit Charakter-Export
+                <select id="selUnit">
+                  <option value="auto" selected>Automatisch (FBX → cm, GLB → m)</option>
+                  <option value="cm">Zentimeter</option>
+                  <option value="m">Meter</option>
+                </select>
+              </label>
+              <div class="row">
+                <button class="btn" id="btnSaveJson" style="flex:1">Tracking speichern</button>
+                <label class="btn" style="flex:1">Tracking laden<input type="file" id="fileJson" accept=".json" hidden></label>
+              </div>
+              <p class="note">Skelett-Namen sind Mixamo-kompatibel (Hips, Spine, LeftArm, LeftHandIndex1 …). Der Mesh-Export enthält Skinning, Materialien und Basisfarb-Texturen.</p>
+            </div>
+          </details>
         </div>
       </section>
     </aside>
@@ -318,19 +347,20 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
               </optgroup>
             </select>
           </label>
+          <div class="legend"><span>links</span><span class="r">rechts</span></div>
           <div class="viewctl zoom" role="group" aria-label="Zoom">
             <button type="button" id="btnZoomOut" aria-label="Herauszoomen" title="Herauszoomen">−</button>
             <output id="zoomVal" aria-live="off">100 %</output>
             <button type="button" id="btnZoomIn" aria-label="Hineinzoomen" title="Hineinzoomen">+</button>
             <button type="button" id="btnZoomHome" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3.2h3.2"/></svg></button>
-            <span class="sep" aria-hidden="true"></span>
+          </div>
+          <div class="viewctl zoom actions" role="group" aria-label="Wiedergabe und Aufnahme">
             <button type="button" class="fs-only" id="btnPlay2" aria-label="Abspielen / Pause" title="Abspielen / Pause (Leertaste)"><svg viewBox="0 0 16 16" aria-hidden="true" class="solid" id="icoPlay2"><path d="M4 2.5v11l9-5.5z"/></svg></button>
             <button type="button" id="btnFull" aria-pressed="false" aria-label="Vollbild" title="Vollbild"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
-            <button type="button" id="btnVidRec" aria-pressed="false" aria-label="Ansicht als Video aufnehmen" title="Ansicht als Video aufnehmen"><svg viewBox="0 0 16 16" aria-hidden="true" class="solid" id="icoVidRec"><circle cx="8" cy="8" r="4.5"/></svg></button>
+            <button type="button" class="rec" id="btnVidRec" aria-pressed="false" aria-label="Ansicht als Video aufnehmen" title="Ansicht als Video aufnehmen"><svg viewBox="0 0 16 16" aria-hidden="true" class="solid" id="icoVidRec"><circle cx="8" cy="8" r="4.5"/></svg><span>Video</span></button>
           </div>
           <canvas id="pip" hidden aria-hidden="true"></canvas>
           <div class="rec-badge" id="recBadge" hidden>● REC <span id="recTime">0:00</span></div>
-          <div class="legend"><span>links</span><span class="r">rechts</span></div>
         </div>
       </div>
       <div class="transport">
@@ -341,6 +371,15 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
     </div>
   </div>
 </div>
+<dialog class="dlg" id="dlgVideo" aria-labelledby="dlgVideoTitle">
+  <h2 id="dlgVideoTitle">Video herunterladen?</h2>
+  <video id="dlgVideoPreview" playsinline muted loop controls></video>
+  <p class="meta" id="dlgVideoInfo"></p>
+  <div class="row dlg-actions">
+    <button class="btn" id="btnVideoDiscard" type="button">Verwerfen</button>
+    <button class="btn primary" id="btnVideoSave" type="button">Herunterladen</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" hidden></div>
 <div class="fatal" id="fatal" hidden><b>Das Tool konnte nicht starten</b><span id="fatalMsg"></span></div>
 <script>
@@ -533,6 +572,42 @@ const ROLES = [
 // ---------- generated source rig ----------
 const DEFAULT_DIMS = { shoulderW: 0.36, hipW: 0.2, torso: 0.5, upperArm: 0.28, foreArm: 0.26, hand: 0.09, thigh: 0.42, shin: 0.41, foot: 0.17, neckHead: 0.2 };
 const ANKLE_H = 0.08;
+// Fingers of the generated rig, palm down, for a 9 cm hand: name, start offset from the wrist
+// [along the arm, up, forward], pointing direction, lengths of the three finger bones.
+const FINGER_REST = [
+  ['Thumb', [0.022, -0.012, 0.022], [0.55, -0.25, 0.8], [0.040, 0.032, 0.027]],
+  ['Index', [0.088, 0, 0.024], [1, 0, 0.06], [0.040, 0.024, 0.021]],
+  ['Middle', [0.090, 0, 0.007], [1, 0, 0], [0.044, 0.028, 0.023]],
+  ['Ring', [0.085, 0, -0.010], [1, 0, -0.05], [0.041, 0.026, 0.022]],
+  ['Pinky', [0.078, 0, -0.026], [1, 0, -0.12], [0.032, 0.020, 0.019]],
+];
+// MediaPipe hand landmarks along each finger (0 = wrist).
+const FINGERS = ['thumb', 'index', 'middle', 'ring', 'pinky'];
+const HAND_LM = { thumb: [1, 2, 3, 4], index: [5, 6, 7, 8], middle: [9, 10, 11, 12], ring: [13, 14, 15, 16], pinky: [17, 18, 19, 20] };
+const FINGER_KEYS = { thumb: ['thumb'], index: ['index', 'pointer'], middle: ['middle'], ring: ['ring'], pinky: ['pinky', 'pinkie', 'little', 'small'] };
+// Finger bone chains below a hand bone, found by name (Mixamo, VRM, Rigify, Unreal …).
+function findFingerChains(skel, hand, children) {
+  const isBone = (i) => skel.nodes[i].kind === 'bone';
+  const hit = (i, f) => FINGER_KEYS[f].some((k) => (skel.nodes[i].name || '').toLowerCase().includes(k));
+  const out = {};
+  for (const f of FINGERS) {
+    let start = -1, level = children[hand].filter(isBone);
+    for (let d = 0; d < 3 && start < 0 && level.length; d++) {
+      start = level.find((i) => hit(i, f)) ?? -1;
+      level = level.flatMap((i) => children[i].filter(isBone));
+    }
+    if (start < 0) continue;
+    const chain = [start];
+    while (chain.length < 6) {
+      const ch = children[chain[chain.length - 1]].filter(isBone);
+      if (!ch.length) break;
+      chain.push(ch.find((i) => hit(i, f)) ?? ch[0]);
+    }
+    if (chain.length >= 5) chain.shift(); // a palm (metacarpal) bone in front of the three finger joints
+    if (chain.length >= 2) out[f] = chain.slice(0, 4);
+  }
+  return out;
+}
 
 function buildSourceRig(d = DEFAULT_DIMS) {
   const nodes = [], roles = {}, W = {};
@@ -556,6 +631,13 @@ function buildSourceRig(d = DEFAULT_DIMS) {
     const la = add(S + 'ForeArm', ua, [(x0 + d.upperArm) * sg, hy + T, 0], p + 'LowerArm');
     const ha = add(S + 'Hand', la, [(x0 + d.upperArm + d.foreArm) * sg, hy + T, 0], p + 'Hand');
     add(S + 'Hand_End', ha, [(x0 + d.upperArm + d.foreArm + d.hand) * sg, hy + T, 0]);
+    const hs = d.hand / 0.09, hx = (x0 + d.upperArm + d.foreArm) * sg;
+    for (const [name, base, dir0, segs] of FINGER_REST) {
+      const dir = v3.norm([dir0[0] * sg, dir0[1], dir0[2]]);
+      let p = [hx + base[0] * hs * sg, hy + T + base[1] * hs, base[2] * hs], par = ha;
+      segs.forEach((len, j) => { par = add(`${S}Hand${name}${j + 1}`, par, p); p = v3.add(p, v3.mul(dir, len * hs)); });
+      add(`${S}Hand${name}4`, par, p);
+    }
   }
   for (const [S, sg, p] of [['Left', 1, 'l'], ['Right', -1, 'r']]) {
     const x = d.hipW / 2 * sg;
@@ -700,6 +782,18 @@ function makeRetargeter(skel, roles) {
     if (t && v3.len(v3.sub(t, P(h))) > 1e-6) restDir[s + 'Hand'] = v3.norm(v3.sub(t, P(h)));
     else if (restDir[s + 'LowerArm']) restDir[s + 'Hand'] = restDir[s + 'LowerArm'];
   }
+  // finger bones: each one points from its joint to the next joint of the same finger
+  const fingerOf = new Array(N).fill(null), fingerBones = [];
+  for (const s of ['l', 'r']) {
+    const h = R(s + 'Hand'); if (h < 0) continue;
+    for (const [f, ch] of Object.entries(findFingerChains(skel, h, children))) {
+      for (let j = 0; j < ch.length - 1 && j < 3; j++) {
+        const dir = v3.sub(P(ch[j + 1]), P(ch[j])); if (v3.len(dir) < 1e-6) continue;
+        fingerOf[ch[j]] = { side: s === 'l' ? 0 : 1, a: HAND_LM[f][j], b: HAND_LM[f][j + 1], rest: v3.norm(dir) };
+        fingerBones.push(ch[j]);
+      }
+    }
+  }
   const restHinge = {};
   for (const s of ['l', 'r']) {
     if (restDir[s + 'UpperArm']) restHinge[s + 'UpperArm'] = v3.cross(restDir[s + 'UpperArm'], fwdAx);
@@ -721,7 +815,8 @@ function makeRetargeter(skel, roles) {
   const restLocal = skel.nodes.map((n) => n.quat);
 
   // W: Float32Array(99) world landmarks (three coords, metres, hip centred)
-  // opts: { offset:[x,y,z] metres in source space, srcHipHeight }
+  // opts: { offset:[x,y,z] metres in source space, srcHipHeight, hands:[left, right] }
+  //   hands: per side Float32Array (21 hand landmarks × xyz, relative to the wrist, same axes as W) or null
   function solve(W, opts = {}) {
     const g = (i) => lmv(W, i);
     const lHip = g(LM.L_HIP), rHip = g(LM.R_HIP), lSh = g(LM.L_SH), rSh = g(LM.R_SH);
@@ -748,6 +843,11 @@ function makeRetargeter(skel, roles) {
       const handTip = v3.mid(g(IX), g(PK));
       tgt[s + 'Hand'] = v3.norm(v3.sub(handTip, g(WR)));
       hingeT[s + 'Hand'] = v3.sub(g(IX), g(PK));
+      const hd = opts.hands && opts.hands[s === 'l' ? 0 : 1];
+      if (hd) { // the hand model knows the palm better: wrist → middle knuckle, index knuckle − pinky knuckle
+        tgt[s + 'Hand'] = v3.norm([hd[27], hd[28], hd[29]]);
+        hingeT[s + 'Hand'] = [hd[15] - hd[51], hd[16] - hd[52], hd[17] - hd[53]];
+      }
       const ul = v3.sub(g(KN), g(HP)), ll = v3.sub(g(AN), g(KN));
       tgt[s + 'UpperLeg'] = v3.norm(ul); tgt[s + 'LowerLeg'] = v3.norm(ll);
       hingeT[s + 'UpperLeg'] = v3.cross(v3.norm(ul), v3.norm(ll));
@@ -761,9 +861,9 @@ function makeRetargeter(skel, roles) {
       const role = nd.kind === 'bone' ? roleOf[i] : null;
       const rw = rest.wq[i];
       let w = null;
-      const swing = (dir) => {
+      const swing = (dir, rd = restDir[role]) => {
         const cur = qt.mul(pq, restLocal[i]);
-        const cd = qt.rot(qt.mul(cur, qt.conj(rw)), restDir[role]);
+        const cd = qt.rot(qt.mul(cur, qt.conj(rw)), rd);
         return qt.mul(qt.fromUnit(v3.norm(cd), dir), cur);
       };
       if (role === 'hips') w = qt.mul(Dh, rw);
@@ -781,8 +881,15 @@ function makeRetargeter(skel, roles) {
       } else if (role && /Hand$/.test(role) && restDir[role]) {
         const sw = swing(tgt[role]);
         const Rm = qt.mul(frameQ(tgt[role], hingeT[role], 'x'), qt.conj(frameQ(restDir[role], restHinge[role], 'x')));
-        w = qt.slerp(sw, qt.mul(Rm, rw), 0.6);
+        w = qt.slerp(sw, qt.mul(Rm, rw), opts.hands && opts.hands[role[0] === 'l' ? 0 : 1] ? 0.9 : 0.6);
       } else if (role && /LowerArm$|LowerLeg$|Foot$/.test(role) && restDir[role]) w = swing(tgt[role]);
+      else if (fingerOf[i] && opts.hands) {
+        const fo = fingerOf[i], hd = opts.hands[fo.side];
+        if (hd) {
+          const d = [hd[fo.b * 3] - hd[fo.a * 3], hd[fo.b * 3 + 1] - hd[fo.a * 3 + 1], hd[fo.b * 3 + 2] - hd[fo.a * 3 + 2]];
+          if (v3.len(d) > 1e-6) w = swing(v3.norm(d), fo.rest);
+        }
+      }
       if (!w) w = qt.mul(pq, restLocal[i]);
       wq[i] = qt.norm(w);
       local[i] = qt.norm(qt.mul(qt.conj(pq), wq[i]));
@@ -796,7 +903,7 @@ function makeRetargeter(skel, roles) {
     }
     return { local, hipsPos, hips };
   }
-  return { solve, hips, hipHeight, B0, upAx, fwdAx, restDir, roles };
+  return { solve, hips, hipHeight, B0, upAx, fwdAx, restDir, roles, fingerBones };
 }
 
 // ---------- tracking post-processing ----------
@@ -816,6 +923,37 @@ function fillAndSmooth(frames, sigma) {
     const mix = (x, y) => { const r = new Float32Array(x.length); for (let j = 0; j < x.length; j++) r[j] = x[j] + (y[j] - x[j]) * t; return r; };
     out[k] = { w: mix(a.w, b.w), i: mix(a.i, b.i), v: new Float32Array(33), filled: true };
   }
+  // hands, per side: gaps of up to 8 frames are bridged, longer ones stay empty (fingers relax)
+  for (let s = 0; s < 2; s++) {
+    const has = frames.map((f) => !!(f && f.hands && f.hands[s]));
+    if (!has.some(Boolean)) continue;
+    const src = (k) => frames[k].hands[s], len = src(has.indexOf(true)).length;
+    let hd = new Array(n).fill(null), prevH = -1;
+    for (let k = 0; k < n; k++) {
+      if (has[k]) { hd[k] = Float32Array.from(src(k)); prevH = k; continue; }
+      let next = -1; for (let j = k + 1; j < n && j - k <= 8; j++) if (has[j]) { next = j; break; }
+      if (prevH >= 0 && next >= 0 && next - prevH <= 9) {
+        const t = (k - prevH) / (next - prevH), a = src(prevH), b = src(next), r = new Float32Array(len);
+        for (let c = 0; c < len; c++) r[c] = a[c] + (b[c] - a[c]) * t;
+        hd[k] = r;
+      }
+    }
+    if (sigma > 0.05) {
+      const hs = Math.max(0.5, sigma * 0.7), hr = Math.ceil(hs * 3);
+      hd = hd.map((cur, k) => {
+        if (!cur) return null;
+        const r = new Float32Array(len); let ws = 0;
+        for (let j = -hr; j <= hr; j++) {
+          const q = hd[k + j]; if (!q) continue;
+          const wgt = Math.exp(-(j * j) / (2 * hs * hs)); ws += wgt;
+          for (let c = 0; c < len; c++) r[c] += q[c] * wgt;
+        }
+        for (let c = 0; c < len; c++) r[c] /= ws;
+        return r;
+      });
+    }
+    hd.forEach((h, k) => { if (h) { out[k].hands = out[k].hands ? [...out[k].hands] : [null, null]; out[k].hands[s] = h; } });
+  }
   if (!(sigma > 0.05)) return out;
   const rad = Math.ceil(sigma * 3), ker = [];
   for (let j = -rad; j <= rad; j++) ker.push(Math.exp(-(j * j) / (2 * sigma * sigma)));
@@ -831,7 +969,7 @@ function fillAndSmooth(frames, sigma) {
     return res;
   };
   const W = sm('w', 99), I = sm('i', 66);
-  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled }));
+  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled, hands: f.hands }));
 }
 
 const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
@@ -1292,9 +1430,9 @@ function buildFBX(opts) {
   return writeFBX(top);
 }
 
-return { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
+return { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
 })();
-const { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
+const { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
 
 // ============================================================
 // APP — UI, three.js viewport, MediaPipe tracking, export
@@ -1399,23 +1537,26 @@ const ENVS = {
   snowy_park_01: { height: 1.7, turn: 1.7, sun: 1.4, hemi: 1.0, shadow: 0.3, radius: 20 },
   forest_slope: { height: 1.7, turn: 0.94, sun: 1.8, hemi: 0.8, shadow: 0.4, radius: 12 },
   empty_warehouse_01: { height: 1.6, turn: 1.88, sun: 1.2, hemi: 0.9, shadow: 0.3,
-    floor: [[0, -8], [10, -9], [20, -10], [30, -11], [40, -12], [55, -12.4], [70, -12], [80, -11.4], [92, -11], [97, -16], [110, -16], [125, -17], [135, -17],
+    floor: [[0, -6.8], [10, -8], [20, -9.4], [30, -10.3], [40, -11], [55, -11.6], [70, -11.2], [80, -10.4], [92, -10], [97, -16], [110, -16], [125, -17], [135, -17],
       [137, -10.4], [150, -10.4], [165, -13.6], [180, -13.6], [190, -6], [215, -5], [240, -4.4], [265, -4], [285, -2.4], [300, -2.6], [315, -3], [330, -4.6], [350, -6], [360, -8]],
-    ceil: [[0, 19], [30, 24], [60, 25.6], [90, 24], [120, 21], [150, 17], [180, 15], [240, 14], [260, 11], [290, 9], [330, 12], [360, 19]] },
+    ceil: [[0, 19], [30, 24], [60, 25.6], [90, 24], [120, 21], [150, 17], [180, 15], [240, 14], [260, 11], [290, 8.5], [320, 9], [345, 14.5], [360, 19]] },
   gym_entrance: { height: 1.5, turn: 1.38, sun: 1.2, hemi: 0.9, shadow: 0.3,
-    floor: [[0, -14], [20, -13], [21, -40], [47, -40], [50, -47], [65, -48], [80, -45], [90, -39], [100, -31], [110, -25], [120, -19], [130, -14], [140, -11],
-      [142, -34], [175, -34], [178, -22], [190, -24], [200, -30], [212, -30], [215, -44], [265, -44], [270, -34], [290, -34], [295, -29], [320, -31], [345, -29], [355, -28], [358, -14], [360, -14]],
-    ceil: [[0, 22], [20, 28], [48, 45], [80, 43], [100, 38], [115, 30], [126, 19], [135, 10], [150, 10], [160, 19], [180, 25], [200, 30], [230, 35], [260, 32], [290, 28], [320, 26], [350, 25], [360, 22]] },
+    floor: [[0, -14], [20, -13], [21, -40], [35, -43], [45, -47], [50, -47.5], [65, -48], [80, -44.5], [90, -38.7], [100, -30.6], [110, -22.5], [120, -18],
+      [130, -14], [135, -12], [140, -11], [142, -34], [175, -34], [178, -22], [187, -27], [197, -27], [199, -21], [212, -21], [214, -45], [265, -45],
+      [270, -33.5], [290, -33.5], [293, -29], [320, -30], [345, -29], [355, -27], [358, -14], [360, -14]],
+    ceil: [[0, 22], [20, 28], [48, 44.5], [80, 43], [100, 39], [115, 30], [126, 19], [135, 10], [150, 10], [160, 13], [173, 19], [180, 25], [190, 31],
+      [230, 36], [260, 31], [290, 25.5], [320, 25], [350, 25], [360, 22]] },
   studio_small_09: { height: 1.5, turn: 0, sun: 1.4, hemi: 0.9, shadow: 0.3,
     floor: [[0, -34], [22, -34], [30, -26], [40, -20], [60, -15], [95, -14], [130, -15], [148, -20], [155, -34], [175, -34], [185, -30], [195, -22], [220, -17],
       [260, -16], [300, -16], [330, -18], [350, -24], [360, -34]],
-    ceil: [[0, 30], [40, 35], [60, 50], [90, 54], [120, 50], [145, 38], [180, 30], [360, 30]] },
+    ceil: [[0, 30], [35, 35], [42, 41], [60, 50], [90, 54], [120, 50], [137, 41], [145, 38], [180, 30], [195, 36], [230, 36], [245, 30], [300, 30],
+      [308, 37], [348, 37], [355, 30], [360, 30]] },
   lebombo: { height: 1.2, turn: 0.35, sun: 1.2, hemi: 0.9, shadow: 0.3,
-    floor: [[0, -24], [45, -25], [48, -29], [59, -29], [60, -17], [67, -17], [68, -20], [80, -24], [95, -28], [110, -29], [111, -17], [128, -17], [129, -27],
-      [133, -27], [134, -22], [150, -21], [155, -22], [165, -27], [180, -33], [190, -32], [200, -31], [210, -29.5], [220, -28], [230, -26.5], [240, -25],
-      [250, -24], [257, -22.5], [270, -25.5], [290, -26.5], [300, -26.5], [310, -25], [320, -23], [330, -21.5], [340, -20], [350, -22], [360, -24]],
-    ceil: [[0, 32], [45, 33], [50, 37], [60, 32], [80, 34], [100, 36], [110, 36], [130, 34], [150, 32], [155, 31], [170, 35], [180, 40], [200, 41.5], [230, 38],
-      [257, 30], [300, 30.5], [340, 30], [350, 33], [360, 32]] },
+    floor: [[0, -24], [45, -25], [48, -29], [59, -29], [60, -17], [67, -17], [68, -20], [80, -24], [95, -28], [110, -29], [111, -17], [128, -17], [129, -27.5],
+      [137, -27.5], [138, -22], [150, -21.5], [155, -23.5], [157, -28], [171, -28.5], [180, -30.5], [195, -30.8], [205, -30], [220, -29], [232, -28], [240, -25.5],
+      [250, -23.8], [257, -22.5], [270, -25.5], [290, -26.5], [300, -26.5], [310, -25], [320, -23], [330, -21.5], [340, -20], [350, -22], [360, -24]],
+    ceil: [[0, 32], [45, 33], [50, 37], [60, 31], [80, 34], [100, 36], [110, 36], [130, 36], [150, 31.6], [155, 31], [170, 37], [180, 41], [200, 41.5], [230, 39],
+      [257, 30], [278, 33], [298, 34.5], [320, 33], [340, 30], [350, 33], [360, 32]] },
   venice_sunset: { height: 1.7, turn: 2.2, sun: 1.8, hemi: 0.8, shadow: 0.35, radius: 25 },
   autumn_forest_04: { height: 1.7, turn: 2.07, sun: 1.8, hemi: 0.8, shadow: 0.4, radius: 15 },
   forest_cave: { height: 1.7, turn: 2.7, sun: 1.2, hemi: 0.9, shadow: 0.3, radius: 10 },
@@ -1426,10 +1567,11 @@ const ENVS = {
   rogland_clear_night: { height: 1.7, turn: 2.58, sun: 0.5, hemi: 0.4, shadow: 0.15, radius: 15 },
   passendorf_snow: { height: 1.7, turn: 0.75, sun: 2.2, hemi: 0.9, shadow: 0.45, radius: 30 },
   burnt_warehouse: { height: 1.6, turn: 1.1, sun: 1.0, hemi: 0.7, shadow: 0.3,
-    floor: [[0, -22], [30, -20], [60, -15], [80, -11], [89, -11], [90, -19], [104, -19], [105, -8], [120, -10], [140, -14], [160, -16], [180, -19],
-      [195, -20], [225, -20], [240, -19], [270, -17], [300, -17.6], [322, -13], [330, -16], [350, -19], [360, -22]],
-    ceil: [[0, 32], [30, 30], [60, 20], [80, 14], [95, 18], [105, 11], [120, 11], [140, 19], [160, 25], [180, 30], [210, 26], [270, 30], [280, 34],
-      [330, 28], [360, 32]] },
+    floor: [[0, -19.5], [20, -18], [35, -17], [38, -22.7], [50, -24.8], [60, -26.4], [66, -27], [70, -17], [75, -15.7], [80, -11], [89, -11], [90, -18.4],
+      [104, -18.4], [105, -8], [120, -10], [140, -15], [160, -17.5], [180, -19.5], [195, -19.8], [225, -19.8], [240, -18.4], [270, -17.3], [300, -17.3],
+      [322, -12.5], [330, -16.3], [350, -19], [360, -19.5]],
+    ceil: [[0, 32], [30, 30], [60, 20], [80, 14.6], [89, 14], [90, 40], [104, 40], [105, 11], [120, 14], [140, 22], [160, 27.5], [180, 30], [210, 27.5],
+      [240, 28.4], [270, 31], [280, 33.7], [300, 31], [322, 24.7], [340, 27], [360, 32]] },
 };
 const STUDIO_LOOK = { background: scene.background, fog: scene.fog, sunPos: sun.position.clone(), sun: sun.intensity, hemi: hemi.intensity, shadow: floor.material.opacity };
 // Room around the photo position: floor, walls and ceiling stand where the photo shows them.
@@ -1587,10 +1729,11 @@ function buildRigObjects(skel) {
   skel.nodes.forEach((n, i) => {
     const col = sideColor(n.name);
     const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.1, emissive: col, emissiveIntensity: 0.12 });
-    if (!/_End$/.test(n.name)) { const j = new THREE.Mesh(jointGeo, mat); j.castShadow = true; objs[i].add(j); }
+    const fine = /Hand(Thumb|Index|Middle|Ring|Pinky)/.test(n.name), th = fine ? 0.4 : 1;
+    if (!/_End$/.test(n.name)) { const j = new THREE.Mesh(jointGeo, mat); j.scale.setScalar(th); j.castShadow = true; objs[i].add(j); }
     if (n.parent >= 0 && !(n.name.endsWith('Shoulder'))) {
       const v = new THREE.Vector3().fromArray(n.pos), len = v.length(); if (len < 1e-4) return;
-      const m = new THREE.Mesh(boneGeo, mat); m.scale.set(1, len, 1);
+      const m = new THREE.Mesh(boneGeo, mat); m.scale.set(th, len, th);
       m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize()); m.castShadow = true;
       objs[n.parent].add(m);
     }
@@ -1636,12 +1779,20 @@ function sampleFrame(f) {
   for (let k = 0; k < 99; k++) w[k] = A.w[k] + (B.w[k] - A.w[k]) * t;
   for (let k = 0; k < 66; k++) im[k] = A.i[k] + (B.i[k] - A.i[k]) * t;
   const oa = S.offsets[a] || [0, 0, 0], ob = S.offsets[b] || oa;
-  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled };
+  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled, hands: lerpHands(A.hands, B.hands, t) };
 }
 
-function applyPose(target, w, off) {
+function lerpHands(A, B, t) {
+  if (!A && !B) return null;
+  return [0, 1].map((s) => {
+    const a = A && A[s], b = B && B[s];
+    if (a && b) { const r = new Float32Array(a.length); for (let k = 0; k < a.length; k++) r[k] = a[k] + (b[k] - a[k]) * t; return r; }
+    return (t < 0.5 ? a || b : b || a) || null;
+  });
+}
+function applyPose(target, w, off, hands) {
   if (!target || !target.rt) return;
-  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight });
+  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight, hands });
   target.skel.nodes.forEach((n, i) => { if (n.kind === 'bone') target.objs[i].quaternion.fromArray(r.local[i]); });
   target.objs[r.hips].position.fromArray(r.hipsPos);
 }
@@ -1649,7 +1800,7 @@ function applyPose(target, w, off) {
 function showFrame(f) {
   S.cur = f;
   const s = sampleFrame(f);
-  if (s) { applyPose(S.rig, s.w, s.off); applyPose(S.char, s.w, s.off); }
+  if (s) { applyPose(S.rig, s.w, s.off, s.hands); applyPose(S.char, s.w, s.off, s.hands); }
   drawOverlay(s);
   const n = S.frames.length;
   $('tc').innerHTML = `Bild <b>${n ? Math.round(f) + 1 : 0}</b> / ${n} · <b>${(f / S.fps).toFixed(2)}</b> s`;
@@ -1661,6 +1812,7 @@ const ov = $('overlay'), octx = ov.getContext('2d');
 const EDGES = [[11, 12, 'c'], [11, 23, 'l'], [12, 24, 'r'], [23, 24, 'c'], [11, 13, 'l'], [13, 15, 'l'], [15, 17, 'l'], [15, 19, 'l'], [17, 19, 'l'], [15, 21, 'l'],
   [12, 14, 'r'], [14, 16, 'r'], [16, 18, 'r'], [16, 20, 'r'], [18, 20, 'r'], [16, 22, 'r'], [23, 25, 'l'], [25, 27, 'l'], [27, 29, 'l'], [29, 31, 'l'], [27, 31, 'l'],
   [24, 26, 'r'], [26, 28, 'r'], [28, 30, 'r'], [30, 32, 'r'], [28, 32, 'r'], [0, 2, 'l'], [2, 7, 'l'], [0, 5, 'r'], [5, 8, 'r'], [9, 10, 'c']];
+const HAND_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [0, 17], [17, 18], [18, 19], [19, 20]];
 function sizeOverlay() {
   const r = $('monVideo').getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
   ov.width = Math.max(1, Math.round(r.width * dpr)); ov.height = Math.max(1, Math.round(r.height * dpr));
@@ -1689,6 +1841,18 @@ function drawOverlay(s) {
     octx.strokeStyle = side === 'l' ? '#4cc9e6' : side === 'r' ? '#f2a65a' : '#e4e8ee';
     octx.globalAlpha = s.filled ? 0.45 : 0.95;
     octx.beginPath(); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); octx.stroke();
+  }
+  if (s.hands) {
+    octx.lineWidth = Math.max(1.5, lw * 0.55); octx.globalAlpha = 0.95;
+    s.hands.forEach((h, side) => {
+      if (!h) return;
+      const Q = (j) => [R.x + h[63 + j * 2] * R.w, R.y + h[63 + j * 2 + 1] * R.h];
+      octx.strokeStyle = side === 0 ? '#4cc9e6' : '#f2a65a';
+      octx.beginPath();
+      for (const [a, b] of HAND_EDGES) { const pa = Q(a), pb = Q(b); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); }
+      octx.stroke();
+    });
+    octx.lineWidth = lw;
   }
   octx.globalAlpha = 1; octx.fillStyle = '#ffffff';
   for (let j = 0; j < 33; j++) { if (j > 0 && j < 11 && ![2, 5, 7, 8].includes(j)) continue; const p = P(j); octx.beginPath(); octx.arc(p[0], p[1], lw * 1.1, 0, Math.PI * 2); octx.fill(); }
@@ -1745,10 +1909,10 @@ for (const ev of ['pointermove', 'pointerdown', 'wheel']) mon3d.addEventListener
 $('btnPlay2').onclick = () => { if (!S.tracking) setPlaying(!S.playing); };
 
 // Source picture: video frame plus tracked skeleton, placed bottom right in a W×H frame.
-function pipRect(W, H) {
+function pipRect(W, H, below = 0) { // below: room kept free under the picture (the on-screen buttons)
   const ar = S.vidW / S.vidH || 16 / 9, m = Math.round(Math.min(W, H) * 0.025);
   let w = W * 0.24, h = w / ar; if (h > H * 0.38) { h = H * 0.38; w = h * ar; }
-  return { x: W - w - m, y: H - h - m, w, h };
+  return { x: W - w - m, y: H - h - m - below, w, h };
 }
 function drawSource(g, r, scale) {
   const rad = 8 * scale;
@@ -1768,7 +1932,7 @@ function drawSource(g, r, scale) {
 let pipKey = '';
 function drawPip() {
   if (!fullOn) return;
-  const W = mon3d.clientWidth, H = mon3d.clientHeight, r = pipRect(W, H), dpr = Math.min(devicePixelRatio || 1, 2);
+  const W = mon3d.clientWidth, H = mon3d.clientHeight, r = pipRect(W, H, 48), dpr = Math.min(devicePixelRatio || 1, 2);
   const key = [W, H, Math.round(r.w), Math.round(r.h)].join();
   if (key !== pipKey) {
     pipKey = key;
@@ -1801,11 +1965,11 @@ function startVideoExport() {
   catch (e) { console.error(e); toast('Die Videoaufnahme konnte nicht gestartet werden: ' + (e.message || e), true, 7000); return; }
   const chunks = [];
   mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const t0 = performance.now();
   mr.onstop = () => {
     if (!chunks.length) { toast('Die Aufnahme ist leer geblieben.', true); return; }
-    const ext = type.startsWith('video/mp4') ? 'mp4' : 'webm';
-    download(new Blob(chunks, { type: type.split(';')[0] }), `${S.videoName || 'motion-rig'}-3d.${ext}`, type.split(';')[0]);
-    toast(`Video gespeichert (${W}×${H}, ${ext.toUpperCase()}).`);
+    const ext = type.startsWith('video/mp4') ? 'mp4' : 'webm', mime = type.split(';')[0];
+    offerVideo(new Blob(chunks, { type: mime }), `${S.videoName || 'motion-rig'}-3d.${ext}`, { W, H, sec: (performance.now() - t0) / 1000 });
   };
   // A recorded clip is exported once from the start; the live camera records until you stop.
   const whole = !S.live && S.frames.length > 0;
@@ -1818,8 +1982,27 @@ function startVideoExport() {
   mr.start(500);
   $('btnVidRec').setAttribute('aria-pressed', 'true');
   $('btnVidRec').title = $('btnVidRec').ariaLabel = 'Aufnahme beenden';
-  $('icoVidRec').innerHTML = '<rect x="4" y="4" width="8" height="8" rx="1"/>';
+  $('icoVidRec').innerHTML = '<rect x="4" y="4" width="8" height="8" rx="1"/>'; $('btnVidRec').querySelector('span').textContent = 'Stopp';
   $('btnExpVideo').textContent = 'Aufnahme beenden'; $('recBadge').hidden = false;
+}
+// Shows the finished video and only downloads it when asked to.
+function offerVideo(blob, name, info) {
+  const dlg = $('dlgVideo'), pv = $('dlgVideoPreview'), url = URL.createObjectURL(blob);
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  pv.src = url; pv.play().catch(() => {});
+  const sec = Math.round(info.sec);
+  $('dlgVideoInfo').textContent = `${name} · ${info.W}×${info.H} · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} min · ${(blob.size / 1e6).toFixed(1)} MB`;
+  const close = (save) => {
+    if (save) download(blob, name, blob.type);
+    pv.pause(); pv.removeAttribute('src'); pv.load(); URL.revokeObjectURL(url);
+    if (dlg.open) dlg.close();
+    toast(save ? 'Video wird heruntergeladen.' : 'Video verworfen.');
+  };
+  $('btnVideoSave').onclick = () => close(true);
+  $('btnVideoDiscard').onclick = () => close(false);
+  dlg.oncancel = (e) => { e.preventDefault(); close(false); };
+  dlg.showModal();
+  $('btnVideoSave').focus();
 }
 function stopVideoExport() {
   if (!vrec.on) return;
@@ -1827,8 +2010,8 @@ function stopVideoExport() {
   if (vrec.mr.state !== 'inactive') vrec.mr.stop();
   $('btnVidRec').setAttribute('aria-pressed', 'false');
   $('btnVidRec').title = $('btnVidRec').ariaLabel = 'Ansicht als Video aufnehmen';
-  $('icoVidRec').innerHTML = '<circle cx="8" cy="8" r="4.5"/>';
-  $('btnExpVideo').textContent = '3D-Ansicht als Video (.mp4/.webm)'; $('recBadge').hidden = true;
+  $('icoVidRec').innerHTML = '<circle cx="8" cy="8" r="4.5"/>'; $('btnVidRec').querySelector('span').textContent = 'Video';
+  $('btnExpVideo').textContent = '3D-Ansicht als Video'; $('recBadge').hidden = true;
 }
 function recordFrame(now) {
   if (!vrec.on) return;
@@ -1845,7 +2028,7 @@ $('btnVidRec').onclick = $('btnExpVideo').onclick = () => (vrec.on ? stopVideoEx
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (S.live) liveStep(now);
+  if (S.live) { if (!S.live.rvfc) liveStep(now); }
   else if (!S.tracking && S.frames.length) {
     if (S.playing) {
       if (S.demo || !S.videoURL) { S.clock = (S.clock + dt) % (S.frames.length / S.fps); showFrame(S.clock * S.fps); }
@@ -1951,11 +2134,59 @@ async function ensureEngine(quality) {
   })();
   try { await ENG.loading; } catch (e) { setEngine('Tracking-Engine nicht ladbar', 'err'); ENG.mode = null; throw e; } finally { ENG.loading = null; }
 }
+const HAND_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+// Loads the hand model next to the pose model (only with the newer MediaPipe engine).
+async function ensureHands() {
+  if (ENG.hands) return true;
+  if (ENG.mode !== 'tasks') return false;
+  if (!ENG.handsLoading) {
+    ENG.handsLoading = (async () => {
+      const vision = await import(TASKS_URL);
+      const fileset = await vision.FilesetResolver.forVisionTasks(WASM_URL);
+      const make = (delegate) => vision.HandLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate }, runningMode: 'VIDEO', numHands: 2,
+        minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5,
+      });
+      try { ENG.hands = await make('GPU'); } catch (e) { console.warn('hand model: GPU failed, using CPU', e); ENG.hands = await make('CPU'); }
+    })().finally(() => { ENG.handsLoading = null; });
+  }
+  try { await ENG.handsLoading; } catch (e) { console.warn(e); toast('Das Fingertracking konnte nicht geladen werden. Es wird nur der Körper getrackt.', true, 6000); }
+  return !!ENG.hands;
+}
+const handsWanted = () => $('chkHands').checked && !!ENG.hands;
+// Assigns each detected hand to the nearest pose wrist and converts it like the body landmarks:
+// per side 63 values (21 points × xyz, metres, relative to the wrist) + 42 image coordinates.
+function handsFromResult(hr, poseImg, mirror) {
+  const hands = [null, null];
+  if (!hr || !hr.landmarks) return hands;
+  const wr = [poseImg[LM.L_WR], poseImg[LM.R_WR]];
+  hr.landmarks.forEach((img, k) => {
+    const world = hr.worldLandmarks && hr.worldLandmarks[k]; if (!world || !img[0]) return;
+    const d = wr.map((p) => Math.hypot(p.x - img[0].x, p.y - img[0].y));
+    let side = d[0] <= d[1] ? 0 : 1;
+    if (hands[mirror ? 1 - side : side]) side = 1 - side;
+    if (d[side] > 0.2) return; // far from the body's wrists: someone else's hand
+    if (mirror) side = 1 - side;
+    if (hands[side]) return;
+    const a = new Float32Array(105), w0 = world[0], sx = mirror ? -1 : 1;
+    for (let j = 0; j < 21; j++) {
+      const q = world[j];
+      a[j * 3] = sx * (q.x - w0.x); a[j * 3 + 1] = -(q.y - w0.y); a[j * 3 + 2] = -(q.z - w0.z);
+      a[63 + j * 2] = mirror ? 1 - img[j].x : img[j].x; a[63 + j * 2 + 1] = img[j].y;
+    }
+    hands[side] = a;
+  });
+  return hands;
+}
 async function detect(stepMs, absTs, mirror) {
   ENG.ts = absTs != null ? Math.max(ENG.ts + 1, Math.round(absTs)) : ENG.ts + Math.max(1, Math.round(stepMs));
   if (ENG.mode === 'tasks') {
     const r = ENG.landmarker.detectForVideo(video, ENG.ts);
-    if (r && r.landmarks && r.landmarks[0] && r.worldLandmarks && r.worldLandmarks[0]) return toFrame(r.landmarks[0], r.worldLandmarks[0], mirror);
+    if (r && r.landmarks && r.landmarks[0] && r.worldLandmarks && r.worldLandmarks[0]) {
+      const fr = toFrame(r.landmarks[0], r.worldLandmarks[0], mirror);
+      if (handsWanted()) { try { fr.hands = handsFromResult(ENG.hands.detectForVideo(video, ENG.ts), r.landmarks[0], mirror); } catch (e) { console.warn(e); } }
+      return fr;
+    }
     return null;
   }
   const res = await new Promise((resolve) => { ENG.legacyResolve = resolve; ENG.pose.send({ image: video }).catch(() => resolve(null)); });
@@ -2002,6 +2233,7 @@ async function runTracking() {
     toast('Die Tracking-Engine konnte nicht geladen werden. Prüfe die Internetverbindung (MediaPipe wird von jsdelivr und storage.googleapis.com geladen).', true, 8000);
     return;
   }
+  if ($('chkHands').checked) await ensureHands();
   setPlaying(false);
   S.tracking = true; S.cancel = false; S.fps = fps;
   $('btnTrack').disabled = true; $('btnCancel').hidden = false; $('tagTrack').textContent = 'tracke …';
@@ -2022,8 +2254,8 @@ async function runTracking() {
       if (fr) {
         // live preview of the current frame (raw, unsmoothed)
         if (!S.rig) setRig(DEFAULT_DIMS);
-        applyPose(S.rig, fr.w, null);
-        drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0] });
+        applyPose(S.rig, fr.w, null, fr.hands);
+        drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0], hands: fr.hands });
       } else drawOverlay(null);
       await new Promise((r) => setTimeout(r, 0));
     }
@@ -2040,7 +2272,8 @@ async function runTracking() {
 }
 $('btnTrack').onclick = runTracking;
 $('btnCancel').onclick = () => { S.cancel = true; };
-$('selQuality').addEventListener('change', () => { if (S.videoURL) ensureEngine($('selQuality').value).catch(() => {}); });
+$('selQuality').addEventListener('change', () => { if (S.videoURL || S.live) ensureEngine($('selQuality').value).catch(() => {}); });
+$('chkHands').addEventListener('change', () => { if ($('chkHands').checked && ENG.mode) ensureHands(); });
 $('rngSmooth').addEventListener('input', () => {
   S.smooth = parseFloat($('rngSmooth').value); $('smoothVal').textContent = S.smooth.toFixed(2);
   if (S.raw.length && !S.tracking) { reprocess(true); showFrame(S.cur); }
@@ -2161,7 +2394,7 @@ function download(bytes, name, type = 'application/octet-stream') {
 function bake(target) {
   const out = [];
   for (let k = 0; k < S.frames.length; k++) {
-    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight });
+    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight, hands: S.frames[k].hands });
     out.push({ local: r.local, hipsPos: r.hipsPos });
   }
   return out;
@@ -2170,7 +2403,7 @@ const baseName = () => (S.demo ? 'demo' : (S.videoName || 'motion')).replace(/[^
 $('btnExpRig').onclick = () => {
   try {
     const r = S.rig, frames = bake(r);
-    const bytes = buildFBX({ skel: r.skel, posMul: 100, unitScale: 1, fps: S.fps, animated: Object.values(r.roles), transNode: r.rt.hips, frames, takeName: baseName() });
+    const bytes = buildFBX({ skel: r.skel, posMul: 100, unitScale: 1, fps: S.fps, animated: [...Object.values(r.roles), ...r.rt.fingerBones], transNode: r.rt.hips, frames, takeName: baseName() });
     download(bytes, `${baseName()}_rig.fbx`);
     toast(`FBX exportiert: ${frames.length} Bilder, ${Object.keys(r.roles).length} animierte Bones.`);
   } catch (e) { console.error(e); toast('Export fehlgeschlagen: ' + e.message, true); }
@@ -2233,7 +2466,7 @@ async function exportCharacter(withMesh) {
   const btn = withMesh ? $('btnExpChar') : $('btnExpCharAnim'); btn.disabled = true;
   try {
     const frames = bake(c);
-    const animated = [...new Set(Object.values(c.roles))].filter((i) => c.skel.nodes[i].kind === 'bone');
+    const animated = [...new Set([...Object.values(c.roles), ...c.rt.fingerBones])].filter((i) => c.skel.nodes[i].kind === 'bone');
     const sel = $('selUnit').value, unitM = sel === 'm' || (sel === 'auto' && c.unit === 'm');
     let skel = c.skel, meshes = [];
     if (withMesh) meshes = await meshData(c);
@@ -2252,7 +2485,8 @@ $('btnExpCharAnim').onclick = () => exportCharacter(false);
 // ---------------- tracking data JSON ----------------
 $('btnSaveJson').onclick = () => {
   const data = { format: 'motion-rig-studio/1', fps: S.fps, width: S.vidW, height: S.vidH, video: S.videoName,
-    frames: S.raw.map((f) => (f ? { w: Array.from(f.w, (x) => +x.toFixed(4)), i: Array.from(f.i, (x) => +x.toFixed(4)), v: Array.from(f.v, (x) => +x.toFixed(2)) } : null)) };
+    frames: S.raw.map((f) => (f ? { w: Array.from(f.w, (x) => +x.toFixed(4)), i: Array.from(f.i, (x) => +x.toFixed(4)), v: Array.from(f.v, (x) => +x.toFixed(2)),
+      ...(f.hands ? { h: f.hands.map((h) => (h ? Array.from(h, (x) => +x.toFixed(4)) : null)) } : {}) } : null)) };
   download(JSON.stringify(data), `${baseName()}_tracking.json`, 'application/json');
 };
 $('fileJson').addEventListener('change', async (e) => {
@@ -2260,7 +2494,8 @@ $('fileJson').addEventListener('change', async (e) => {
   try {
     const d = JSON.parse(await f.text());
     if (!d.frames || !Array.isArray(d.frames)) throw new Error('Keine Tracking-Daten gefunden.');
-    S.raw = d.frames.map((x) => (x ? { w: Float32Array.from(x.w), i: Float32Array.from(x.i), v: Float32Array.from(x.v || new Array(33).fill(1)) } : null));
+    S.raw = d.frames.map((x) => (x ? { w: Float32Array.from(x.w), i: Float32Array.from(x.i), v: Float32Array.from(x.v || new Array(33).fill(1)),
+      hands: Array.isArray(x.h) ? x.h.map((h) => (Array.isArray(h) && h.length === 105 ? Float32Array.from(h) : null)) : null } : null));
     S.fps = d.fps || 30; S.vidW = d.width || 720; S.vidH = d.height || 1280; S.videoName = d.video || f.name.replace(/\.json$/i, '');
     const sameVideo = S.videoURL && Math.abs((video.duration || 0) - S.raw.length / S.fps) < 0.5;
     if (!sameVideo) { S.demo = true; $('demoBadge').hidden = false; $('demoBadge').textContent = 'Geladene Tracking-Daten (ohne Video)'; }
@@ -2303,13 +2538,13 @@ async function startLive() {
   $('btnLive').disabled = true;
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60 }, facingMode: 'user' }, audio: false });
   } catch (e) {
     $('btnLive').disabled = false;
     toast(e && e.name === 'NotAllowedError' ? 'Kamerazugriff wurde verweigert. Erlaube die Kamera in der Adressleiste und versuche es erneut.' : 'Kamera nicht verfügbar: ' + (e.message || e), true, 7000);
     return;
   }
-  try { await ensureEngine($('selQuality').value); } catch (e) {
+  try { await ensureEngine($('selQuality').value); if ($('chkHands').checked) await ensureHands(); } catch (e) {
     stream.getTracks().forEach((t) => t.stop()); $('btnLive').disabled = false;
     toast('Tracking-Engine nicht ladbar. Internetverbindung prüfen.', true, 6000); return;
   }
@@ -2319,7 +2554,13 @@ async function startLive() {
   await video.play().catch(() => {});
   await new Promise((r) => { if (video.videoWidth) r(); else video.onloadedmetadata = () => r(); setTimeout(r, 3000); });
   S.vidW = video.videoWidth || 1280; S.vidH = video.videoHeight || 720;
-  S.live = { stream, filter: new OneEuro(165), ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
+  S.live = { stream, filter: new OneEuro(165), hfilter: [new OneEuro(105), new OneEuro(105)], handSeen: [0, 0], ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
+  // Track each camera frame as soon as it arrives instead of waiting for the next screen refresh.
+  if (video.requestVideoFrameCallback) {
+    const L = S.live; L.rvfc = true;
+    const tick = () => { if (S.live !== L) return; liveStep(performance.now()); video.requestVideoFrameCallback(tick); };
+    video.requestVideoFrameCallback(tick);
+  }
   S.demo = false; $('demoBadge').hidden = true;
   S.raw = []; S.frames = []; S.offsets = []; updateExportButtons();
   if (!S.rig) setRig(DEFAULT_DIMS);
@@ -2336,8 +2577,9 @@ function stopLive() {
   if (!S.frames.length) { $('tagTrack').textContent = 'Kamera aus'; drawOverlay(null); $('videoMeta').textContent = 'Kamera gestoppt. Lade ein Video oder starte die Kamera erneut.'; }
 }
 $('btnLive').onclick = () => (S.live ? stopLive() : startLive());
-$('chkMirror').addEventListener('change', () => { if (S.live) { video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : ''; S.live.filter = new OneEuro(165); S.live.ref = null; } });
+$('chkMirror').addEventListener('change', () => { if (S.live) { video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : ''; S.live.filter = new OneEuro(165); S.live.hfilter = [new OneEuro(105), new OneEuro(105)]; S.live.ref = null; } });
 
+const REACT = { fast: [2.5, 6], balanced: [1.2, 2], calm: [0.6, 0.8] }; // [min cut-off Hz, speed factor]
 function liveStep(now) {
   const L = S.live;
   if (!L || L.busy || video.readyState < 2 || video.currentTime === L.lastVT || !ENG.mode) return;
@@ -2349,17 +2591,26 @@ function liveStep(now) {
     L.fpsCount++; if (now - L.fpsT > 1000) { L.fps = L.fpsCount * 1000 / (now - L.fpsT); L.fpsCount = 0; L.fpsT = now; }
     if (!fr) { drawOverlay(null); $('tagTrack').textContent = 'LIVE · keine Person'; return; }
     if (L.rec) L.rec.frames.push({ t: (now - L.rec.t0) / 1000, f: fr });
-    // smoothing: slider 0..5 -> min cutoff 4..0.6 Hz
-    const sm = S.smooth, minC = 4 / (1 + sm * 1.1), beta = 0.8;
+    // One-Euro smoothing: higher cut-off and speed factor = less delay, more jitter
+    const [minC, beta] = REACT[$('selReact').value] || REACT.fast;
     const sv = L.filter.filter([...fr.w, ...fr.i], now / 1000, minC, beta);
-    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v };
+    let hands = null;
+    if (handsWanted()) {
+      hands = [0, 1].map((s) => {
+        const h = fr.hands && fr.hands[s];
+        if (h) { L.handSeen[s] = now; return L.hfilter[s].filter(h, now / 1000, minC * 1.5, beta); }
+        if (now - L.handSeen[s] < 250 && L.hfilter[s].x) return Float32Array.from(L.hfilter[s].x); // bridge short dropouts
+        L.hfilter[s] = new OneEuro(105); return null;
+      });
+    }
+    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v, hands };
     L.buf.push(f); if (L.buf.length > 90) L.buf.shift();
     if (!L.dimsSet && L.buf.length >= 30) { const m = measureDims(L.buf); S.srcHipHeight = m.srcHipHeight; S.dims = m.dims; setRig(m.dims); L.dimsSet = true; }
     if (!L.ref) L.ref = f;
     let off = [0, 0, 0];
     if (S.rootMode !== 'off' && L.dimsSet) off = computeRootOffsets([L.ref, f], S.rootMode, S.vidW, S.vidH, S.srcHipHeight)[1];
-    applyPose(S.rig, f.w, off); applyPose(S.char, f.w, off);
-    drawOverlay({ w: f.w, i: f.i });
+    applyPose(S.rig, f.w, off, hands); applyPose(S.char, f.w, off, hands);
+    drawOverlay({ w: f.w, i: f.i, hands });
     $('tagTrack').textContent = `LIVE · ${Math.round(L.fps)} fps` + (L.rec ? ` · ● REC ${((now - L.rec.t0) / 1000).toFixed(1)} s` : '');
   }).catch((e) => { L.busy = false; console.warn(e); });
 }
@@ -2416,7 +2667,7 @@ $('btnRec').onclick = () => { if (!S.live) return; if (S.live.rec) stopRecording
   resize(); showFrame(0); setPlaying(true);
   updateExportButtons();
   requestAnimationFrame(loop);
-  window.__mrs = { S, scene, camera, renderer, showFrame, loadCharacterFile };
+  window.__mrs = { S, scene, camera, renderer, showFrame, loadCharacterFile, ENVS };
 })();
 
 </script>
