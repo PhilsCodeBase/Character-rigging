@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-TcAeyJh2D9eJRZSuPzPnjRYmqDJ+sU+Yg9umlLnhdkg=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-O68tn8W7MCttepy+Xetn7Ih0RyTtO/IomCRu9lqS7io=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -73,7 +73,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .toggles-label { color: var(--muted); font-size: 12px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
-.check .meta { font-size: 11.5px; }
+.check .meta { font: 11.5px/1.4 var(--font-ui); word-break: normal; }
 .row > label.btn { flex-direction: row; font-size: 14px; color: var(--fg); }
 .row > label.check { flex: 0 0 auto; flex-direction: row; color: var(--fg); font-size: 13px; }
 .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; }
@@ -204,7 +204,7 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
         <div class="or"><span>oder</span></div>
         <div class="row">
           <button class="btn primary" id="btnLive" style="flex:1">Live-Kamera starten</button>
-          <label class="check"><input type="checkbox" id="chkMirror" checked> Spiegeln</label>
+          <label class="check" title="Zeigt das Kamerabild wie einen Spiegel an. Ändert nur die Anzeige, nicht den Charakter."><input type="checkbox" id="chkMirror" checked> Bild spiegeln</label>
         </div>
         <label class="field">Live-Reaktion
           <select id="selReact">
@@ -221,18 +221,20 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
         <h2><span class="n">2</span>Bewegung tracken</h2>
         <label class="field">Genauigkeit
           <select id="selQuality">
-            <option value="lite">Lite · schnell, gut für live</option>
-            <option value="full" selected>Full · empfohlen</option>
+            <option value="auto" selected>Automatisch · Video genau, live schnell</option>
+            <option value="lite">Lite · schnell</option>
+            <option value="full">Full · ausgewogen</option>
             <option value="heavy">Heavy · genau, langsam</option>
           </select>
         </label>
-        <label class="check"><input type="checkbox" id="chkHands"> Hände und Finger tracken <span class="meta">(etwas langsamer)</span></label>
+        <label class="check"><input type="checkbox" id="chkFace" checked><span>Gesicht genau tracken <span class="meta">(Kopfdrehung und Mimik)</span></span></label>
+        <label class="check"><input type="checkbox" id="chkHands"><span>Hände und Finger tracken <span class="meta">(etwas langsamer)</span></span></label>
         <div class="row">
           <button class="btn primary" id="btnTrack" disabled style="flex:1">Video tracken</button>
           <button class="btn" id="btnCancel" hidden>Abbrechen</button>
         </div>
         <div class="progress"><i id="prog"></i></div>
-        <div class="meta" id="trackMeta">33 Körperpunkte pro Bild, mit Fingertracking zusätzlich 21 Punkte pro Hand.</div>
+        <div class="meta" id="trackMeta">33 Körperpunkte pro Bild, dazu 478 Gesichtspunkte und mit Fingertracking 21 Punkte pro Hand.</div>
         <details class="more">
           <summary>Feineinstellungen</summary>
           <div class="more-body">
@@ -270,6 +272,7 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           <summary>Bone-Zuordnung <span id="mapCount" class="meta"></span></summary>
           <div class="maptable" id="mapTable"></div>
         </details>
+        <label class="check" title="Deine rechte Seite bewegt dann die linke Seite des Charakters. Nötig, wenn Kamera oder Video ein gespiegeltes Bild liefern."><input type="checkbox" id="chkSwap"><span>Links und rechts tauschen <span class="meta">(bei gespiegeltem Kamerabild)</span></span></label>
         <div class="toggles">
           <span class="toggles-label">Anzeigen:</span>
           <label><input type="checkbox" id="chkRig" checked> Tracking-Skelett</label>
@@ -815,7 +818,8 @@ function makeRetargeter(skel, roles) {
   const restLocal = skel.nodes.map((n) => n.quat);
 
   // W: Float32Array(99) world landmarks (three coords, metres, hip centred)
-  // opts: { offset:[x,y,z] metres in source space, srcHipHeight, hands:[left, right] }
+  // opts: { offset:[x,y,z] metres in source space, srcHipHeight, hands:[left, right], face }
+  //   face: Float32Array, [0..3] head rotation quaternion (same axes as W), [4..55] face blendshapes
   //   hands: per side Float32Array (21 hand landmarks × xyz, relative to the wrist, same axes as W) or null
   function solve(W, opts = {}) {
     const g = (i) => lmv(W, i);
@@ -830,7 +834,8 @@ function makeRetargeter(skel, roles) {
     const hx = v3.norm(v3.sub(earL, earR));
     let hfwd = v3.sub(nose, earC); hfwd = v3.sub(hfwd, v3.mul(hx, v3.dot(hx, hfwd)));
     const hy = v3.norm(v3.cross(hfwd, hx));
-    const Qhead = qt.mul(qt.fromBasis(hx, hy, v3.cross(hx, hy)), qt.axisAngle([1, 0, 0], -HEAD_PITCH));
+    let Qhead = qt.mul(qt.fromBasis(hx, hy, v3.cross(hx, hy)), qt.axisAngle([1, 0, 0], -HEAD_PITCH));
+    if (opts.face) Qhead = qt.norm([opts.face[0], opts.face[1], opts.face[2], opts.face[3]]); // 478 face points know the head far better
     const Dh = qt.mul(Qh, B0c), Dc = qt.mul(Qc, B0c), Dhd = qt.mul(Qhead, B0c);
 
     const tgt = {}, hingeT = {};
@@ -908,68 +913,148 @@ function makeRetargeter(skel, roles) {
 
 // ---------- tracking post-processing ----------
 // frames: [{w:Float32Array(99)|null, i:Float32Array(66), v:Float32Array(33)}]
+// Left/right landmark pairs that MediaPipe now and then confuses for a single frame.
+const SIDE_GROUPS = [
+  [[13, 14], [15, 16], [17, 18], [19, 20], [21, 22]], // arms and hands
+  [[25, 26], [27, 28], [29, 30], [31, 32]],           // legs and feet
+];
+// Swaps a left/right limb group of f (in place) when the swapped version fits the previous frame far better.
+function fixSideSwap(f, prev) {
+  if (!f || !f.w || !prev || !prev.w) return false;
+  let any = false;
+  SIDE_GROUPS.forEach((grp, gi) => {
+    const d = (a, b) => Math.hypot(f.w[a * 3] - prev.w[b * 3], f.w[a * 3 + 1] - prev.w[b * 3 + 1], f.w[a * 3 + 2] - prev.w[b * 3 + 2]);
+    let keep = 0, swap = 0;
+    for (const [l, r] of grp) { keep += d(l, l) + d(r, r); swap += d(l, r) + d(r, l); }
+    if (!(keep > 0.15 && swap < keep * 0.5)) return;
+    for (const [l, r] of grp) {
+      for (let c = 0; c < 3; c++) { const t = f.w[l * 3 + c]; f.w[l * 3 + c] = f.w[r * 3 + c]; f.w[r * 3 + c] = t; }
+      for (let c = 0; c < 2; c++) { const t = f.i[l * 2 + c]; f.i[l * 2 + c] = f.i[r * 2 + c]; f.i[r * 2 + c] = t; }
+      if (f.v) { const t = f.v[l]; f.v[l] = f.v[r]; f.v[r] = t; }
+    }
+    if (gi === 0 && f.hands) f.hands = [f.hands[1], f.hands[0]];
+    any = true;
+  });
+  return any;
+}
+// Optional per-frame track (hands, face): short gaps are bridged, then Gaussian smoothing over frames that have data.
+function fillTrack(n, get, maxGap, sigma) {
+  const has = []; for (let k = 0; k < n; k++) has.push(!!get(k));
+  if (!has.some(Boolean)) return null;
+  const len = get(has.indexOf(true)).length;
+  let tr = new Array(n).fill(null), prev = -1;
+  for (let k = 0; k < n; k++) {
+    if (has[k]) { tr[k] = Float32Array.from(get(k)); prev = k; continue; }
+    let next = -1; for (let j = k + 1; j < n && j - k <= maxGap; j++) if (has[j]) { next = j; break; }
+    if (prev >= 0 && next >= 0 && next - prev <= maxGap + 1) {
+      const t = (k - prev) / (next - prev), a = get(prev), b = get(next), r = new Float32Array(len);
+      for (let c = 0; c < len; c++) r[c] = a[c] + (b[c] - a[c]) * t;
+      tr[k] = r;
+    }
+  }
+  if (sigma > 0.05) {
+    const sg = Math.max(0.5, sigma), rad = Math.ceil(sg * 3);
+    tr = tr.map((cur, k) => {
+      if (!cur) return null;
+      const r = new Float32Array(len); let ws = 0;
+      for (let j = -rad; j <= rad; j++) {
+        const q = tr[k + j]; if (!q) continue;
+        const wgt = Math.exp(-(j * j) / (2 * sg * sg)); ws += wgt;
+        for (let c = 0; c < len; c++) r[c] += q[c] * wgt;
+      }
+      for (let c = 0; c < len; c++) r[c] /= ws;
+      return r;
+    });
+  }
+  return tr;
+}
+const VIS_MIN = 0.35, VIS_GAP = 20;
+
 function fillAndSmooth(frames, sigma) {
   const n = frames.length; if (!n) return [];
   const valid = frames.map((f) => !!(f && f.w));
   const firstValid = valid.indexOf(true); if (firstValid < 0) return [];
   const out = new Array(n);
-  // gap fill
+  // 1) copies, with single-frame left/right confusions undone
+  let last = null;
+  const src = frames.map((f) => {
+    if (!f || !f.w) return null;
+    const c = { ...f, w: Float32Array.from(f.w), i: Float32Array.from(f.i), v: Float32Array.from(f.v || new Float32Array(33).fill(1)), hands: f.hands ? [...f.hands] : f.hands };
+    fixSideSwap(c, last); last = c;
+    return c;
+  });
+  // 2) frames without a person: interpolated from the neighbours
   let prev = -1;
   for (let k = 0; k < n; k++) {
-    if (valid[k]) { prev = k; out[k] = { w: Float32Array.from(frames[k].w), i: Float32Array.from(frames[k].i), v: Float32Array.from(frames[k].v) }; continue; }
+    if (valid[k]) { prev = k; out[k] = { w: src[k].w, i: src[k].i, v: src[k].v }; continue; }
     let next = -1; for (let j = k + 1; j < n; j++) if (valid[j]) { next = j; break; }
-    const a = prev >= 0 ? frames[prev] : frames[next], b = next >= 0 ? frames[next] : frames[prev];
+    const a = prev >= 0 ? src[prev] : src[next], b = next >= 0 ? src[next] : src[prev];
     const t = prev >= 0 && next >= 0 ? (k - prev) / (next - prev) : 0;
     const mix = (x, y) => { const r = new Float32Array(x.length); for (let j = 0; j < x.length; j++) r[j] = x[j] + (y[j] - x[j]) * t; return r; };
     out[k] = { w: mix(a.w, b.w), i: mix(a.i, b.i), v: new Float32Array(33), filled: true };
   }
-  // hands, per side: gaps of up to 8 frames are bridged, longer ones stay empty (fingers relax)
-  for (let s = 0; s < 2; s++) {
-    const has = frames.map((f) => !!(f && f.hands && f.hands[s]));
-    if (!has.some(Boolean)) continue;
-    const src = (k) => frames[k].hands[s], len = src(has.indexOf(true)).length;
-    let hd = new Array(n).fill(null), prevH = -1;
+  // 3) joints the model is unsure about (hidden, blurred): taken from nearby frames where they were clearly visible
+  for (let j = 0; j < 33; j++) {
+    const good = out.map((f) => !f.filled && f.v[j] >= VIS_MIN);
+    if (good.every(Boolean) || !good.some(Boolean)) continue;
+    let gp = -1;
     for (let k = 0; k < n; k++) {
-      if (has[k]) { hd[k] = Float32Array.from(src(k)); prevH = k; continue; }
-      let next = -1; for (let j = k + 1; j < n && j - k <= 8; j++) if (has[j]) { next = j; break; }
-      if (prevH >= 0 && next >= 0 && next - prevH <= 9) {
-        const t = (k - prevH) / (next - prevH), a = src(prevH), b = src(next), r = new Float32Array(len);
-        for (let c = 0; c < len; c++) r[c] = a[c] + (b[c] - a[c]) * t;
-        hd[k] = r;
-      }
+      if (good[k]) { gp = k; continue; }
+      if (out[k].filled) continue;
+      let gn = -1; for (let q = k + 1; q < n && q - k <= VIS_GAP; q++) if (good[q]) { gn = q; break; }
+      if (gp < 0 || gn < 0 || k - gp > VIS_GAP) continue;
+      const t = (k - gp) / (gn - gp), A = out[gp], B = out[gn], f = out[k];
+      for (let c = 0; c < 3; c++) f.w[j * 3 + c] = A.w[j * 3 + c] + (B.w[j * 3 + c] - A.w[j * 3 + c]) * t;
+      for (let c = 0; c < 2; c++) f.i[j * 2 + c] = A.i[j * 2 + c] + (B.i[j * 2 + c] - A.i[j * 2 + c]) * t;
     }
-    if (sigma > 0.05) {
-      const hs = Math.max(0.5, sigma * 0.7), hr = Math.ceil(hs * 3);
-      hd = hd.map((cur, k) => {
-        if (!cur) return null;
-        const r = new Float32Array(len); let ws = 0;
-        for (let j = -hr; j <= hr; j++) {
-          const q = hd[k + j]; if (!q) continue;
-          const wgt = Math.exp(-(j * j) / (2 * hs * hs)); ws += wgt;
-          for (let c = 0; c < len; c++) r[c] += q[c] * wgt;
-        }
-        for (let c = 0; c < len; c++) r[c] /= ws;
-        return r;
-      });
-    }
-    hd.forEach((h, k) => { if (h) { out[k].hands = out[k].hands ? [...out[k].hands] : [null, null]; out[k].hands[s] = h; } });
   }
-  if (!(sigma > 0.05)) return out;
+  // 4) hands and face
+  const handTracks = [0, 1].map((s) => fillTrack(n, (k) => (src[k] && src[k].hands && src[k].hands[s]) || null, 8, sigma * 0.7));
+  let lastQ = null;
+  const faceSrc = src.map((f) => { // keep the head quaternion on one hemisphere so averaging works
+    if (!f || !f.face) return null;
+    const fc = Float32Array.from(f.face);
+    if (lastQ && fc[0] * lastQ[0] + fc[1] * lastQ[1] + fc[2] * lastQ[2] + fc[3] * lastQ[3] < 0) for (let c = 0; c < 4; c++) fc[c] = -fc[c];
+    lastQ = fc; return fc;
+  });
+  const faceTrack = fillTrack(n, (k) => faceSrc[k], 8, sigma * 0.6);
+  const extras = (k) => {
+    const e = {};
+    if (handTracks[0] || handTracks[1]) { const h = [handTracks[0] && handTracks[0][k], handTracks[1] && handTracks[1][k]]; if (h[0] || h[1]) e.hands = h; }
+    if (faceTrack && faceTrack[k]) {
+      const fc = faceTrack[k], l = Math.hypot(fc[0], fc[1], fc[2], fc[3]) || 1;
+      for (let c = 0; c < 4; c++) fc[c] /= l;
+      e.face = fc;
+      if (src[k] && src[k].faceImg) e.faceImg = src[k].faceImg;
+    }
+    return e;
+  };
+  if (!(sigma > 0.05)) return out.map((f, k) => ({ ...f, ...extras(k) }));
+  // 5) single-frame spikes removed (median), then Gaussian smoothing
+  const mr = sigma >= 1 ? 2 : 1;
+  const med = (key, len) => out.map((_, k) => {
+    const r = new Float32Array(len), win = [];
+    for (let c = 0; c < len; c++) {
+      win.length = 0;
+      for (let j = -mr; j <= mr; j++) win.push(out[Math.min(n - 1, Math.max(0, k + j))][key][c]);
+      win.sort((x, y) => x - y); r[c] = win[mr];
+    }
+    return r;
+  });
+  const MW = med('w', 99), MI = med('i', 66);
   const rad = Math.ceil(sigma * 3), ker = [];
   for (let j = -rad; j <= rad; j++) ker.push(Math.exp(-(j * j) / (2 * sigma * sigma)));
-  const sm = (key, len) => {
-    const res = out.map(() => new Float32Array(len));
-    for (let k = 0; k < n; k++) {
-      for (let c = 0; c < len; c++) {
-        let s = 0, ws = 0;
-        for (let j = -rad; j <= rad; j++) { const q = Math.min(n - 1, Math.max(0, k + j)); const wgt = ker[j + rad]; s += out[q][key][c] * wgt; ws += wgt; }
-        res[k][c] = s / ws;
-      }
+  const sm = (arr, len) => arr.map((_, k) => {
+    const r = new Float32Array(len);
+    for (let c = 0; c < len; c++) {
+      let s = 0, ws = 0;
+      for (let j = -rad; j <= rad; j++) { const q = Math.min(n - 1, Math.max(0, k + j)); const wgt = ker[j + rad]; s += arr[q][c] * wgt; ws += wgt; }
+      r[c] = s / ws;
     }
-    return res;
-  };
-  const W = sm('w', 99), I = sm('i', 66);
-  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled, hands: f.hands }));
+    return r;
+  });
+  const W = sm(MW, 99), I = sm(MI, 66);
+  return out.map((f, k) => ({ w: W[k], i: I[k], v: f.v, filled: f.filled, ...extras(k) }));
 }
 
 const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
@@ -1430,9 +1515,9 @@ function buildFBX(opts) {
   return writeFBX(top);
 }
 
-return { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
+return { LM, v3, qt, m4, fk, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX };
 })();
-const { LM, v3, qt, m4, fk, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
+const { LM, v3, qt, m4, fk, frameQ, fixSideSwap, VIS_MIN, ROLES, DEFAULT_DIMS, ANKLE_H, FINGERS, HAND_LM, findFingerChains, buildSourceRig, tokenizeBone, autoMap, lmv, HEAD_PITCH, makeRetargeter, fillAndSmooth, measureDims, footMinY, computeRootOffsets, synthPerformance, eulerTrack, buildFBX } = Core;
 
 // ============================================================
 // APP — UI, three.js viewport, MediaPipe tracking, export
@@ -1462,7 +1547,7 @@ const S = {
   raw: [], frames: [], offsets: [], fps: 30, vidW: 720, vidH: 1280, demo: true,
   smooth: 1.5, rootMode: 'ground', dims: null, srcHipHeight: 0.9,
   rig: null, char: null, playing: false, cur: 0, clock: 0, tracking: false, cancel: false,
-  videoURL: null, videoName: '',
+  videoURL: null, videoName: '', dataFlipped: false, // dataFlipped: left/right of the tracked data swapped
 };
 
 // ---------------- toast ----------------
@@ -1779,7 +1864,8 @@ function sampleFrame(f) {
   for (let k = 0; k < 99; k++) w[k] = A.w[k] + (B.w[k] - A.w[k]) * t;
   for (let k = 0; k < 66; k++) im[k] = A.i[k] + (B.i[k] - A.i[k]) * t;
   const oa = S.offsets[a] || [0, 0, 0], ob = S.offsets[b] || oa;
-  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled, hands: lerpHands(A.hands, B.hands, t) };
+  return { w, i: im, off: v3.lerp(oa, ob, t), filled: A.filled && B.filled, hands: lerpHands(A.hands, B.hands, t),
+    face: lerpFace(A.face, B.face, t), faceImg: (t < 0.5 ? A.faceImg || B.faceImg : B.faceImg || A.faceImg) || null };
 }
 
 function lerpHands(A, B, t) {
@@ -1790,17 +1876,41 @@ function lerpHands(A, B, t) {
     return (t < 0.5 ? a || b : b || a) || null;
   });
 }
-function applyPose(target, w, off, hands) {
+function lerpFace(A, B, t) {
+  if (!A || !B) return (t < 0.5 ? A || B : B || A) || null;
+  const r = new Float32Array(A.length), sg = A[0] * B[0] + A[1] * B[1] + A[2] * B[2] + A[3] * B[3] < 0 ? -1 : 1;
+  for (let c = 0; c < A.length; c++) r[c] = A[c] + ((c < 4 ? sg : 1) * B[c] - A[c]) * t;
+  const l = Math.hypot(r[0], r[1], r[2], r[3]) || 1; for (let c = 0; c < 4; c++) r[c] /= l;
+  return r;
+}
+function applyPose(target, w, off, hands, face) {
   if (!target || !target.rt) return;
-  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight, hands });
+  const r = target.rt.solve(w, { offset: off, srcHipHeight: S.srcHipHeight, hands, face });
   target.skel.nodes.forEach((n, i) => { if (n.kind === 'bone') target.objs[i].quaternion.fromArray(r.local[i]); });
   target.objs[r.hips].position.fromArray(r.hipsPos);
+  if (target.morphMap) for (const [mesh, k, b] of target.morphMap) mesh.morphTargetInfluences[k] = face ? face[4 + b] : 0;
+}
+// Character blendshapes that match the face model (ARKit names as used by Ready Player Me, Mixamo-style FBX, many VRM files).
+const BS_ALIAS = { blinkl: 'eyeBlinkLeft', blinkleft: 'eyeBlinkLeft', eyeblinkl: 'eyeBlinkLeft', eyeclosel: 'eyeBlinkLeft', fcleyeclosel: 'eyeBlinkLeft',
+  blinkr: 'eyeBlinkRight', blinkright: 'eyeBlinkRight', eyeblinkr: 'eyeBlinkRight', eyecloser: 'eyeBlinkRight', fcleyecloser: 'eyeBlinkRight',
+  mouthopen: 'jawOpen', fclmtha: 'jawOpen', vrcvaa: 'jawOpen' };
+function buildMorphMap(root) {
+  const map = [];
+  root.traverse((o) => {
+    if (!o.morphTargetDictionary || !o.morphTargetInfluences) return;
+    for (const [name, k] of Object.entries(o.morphTargetDictionary)) {
+      const key = String(name).split(/[.|:]/).pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const b = BS_INDEX.get(key) ?? (BS_ALIAS[key] ? BS_INDEX.get(BS_ALIAS[key].toLowerCase()) : undefined);
+      if (b != null && b > 0) map.push([o, k, b]);
+    }
+  });
+  return map;
 }
 
 function showFrame(f) {
   S.cur = f;
   const s = sampleFrame(f);
-  if (s) { applyPose(S.rig, s.w, s.off, s.hands); applyPose(S.char, s.w, s.off, s.hands); }
+  if (s) { applyPose(S.rig, s.w, s.off, s.hands, s.face); applyPose(S.char, s.w, s.off, s.hands, s.face); }
   drawOverlay(s);
   const n = S.frames.length;
   $('tc').innerHTML = `Bild <b>${n ? Math.round(f) + 1 : 0}</b> / ${n} · <b>${(f / S.fps).toFixed(2)}</b> s`;
@@ -1833,7 +1943,9 @@ function drawOverlay(s) {
     for (let gy = 0; gy <= 14; gy++) { octx.beginPath(); octx.moveTo(R.x, R.y + R.h * gy / 14); octx.lineTo(R.x + R.w, R.y + R.h * gy / 14); octx.stroke(); }
   }
   if (!s) return;
-  const P = (j) => [R.x + s.i[j * 2] * R.w, R.y + s.i[j * 2 + 1] * R.h];
+  // the data may be side-swapped and the picture may be shown mirrored; draw where the person is on screen
+  const fx = S.dataFlipped !== (!!S.live && $('chkMirror').checked), X = (x) => (fx ? 1 - x : x);
+  const P = (j) => [R.x + X(s.i[j * 2]) * R.w, R.y + s.i[j * 2 + 1] * R.h];
   const lw = Math.max(2, R.w / 160);
   octx.lineCap = 'round'; octx.lineWidth = lw;
   for (const [a, b, side] of EDGES) {
@@ -1842,11 +1954,18 @@ function drawOverlay(s) {
     octx.globalAlpha = s.filled ? 0.45 : 0.95;
     octx.beginPath(); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); octx.stroke();
   }
+  if (s.faceImg && ENG.faceEdges && s.faceImg.length === ENG.faceIdx.length * 2) {
+    const F = (k) => [R.x + X(s.faceImg[k * 2]) * R.w, R.y + s.faceImg[k * 2 + 1] * R.h];
+    octx.lineWidth = Math.max(1, lw * 0.35); octx.globalAlpha = 0.7; octx.strokeStyle = '#e4e8ee';
+    octx.beginPath();
+    for (const [a, b] of ENG.faceEdges) { const pa = F(a), pb = F(b); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); }
+    octx.stroke(); octx.lineWidth = lw;
+  }
   if (s.hands) {
     octx.lineWidth = Math.max(1.5, lw * 0.55); octx.globalAlpha = 0.95;
     s.hands.forEach((h, side) => {
       if (!h) return;
-      const Q = (j) => [R.x + h[63 + j * 2] * R.w, R.y + h[63 + j * 2 + 1] * R.h];
+      const Q = (j) => [R.x + X(h[63 + j * 2]) * R.w, R.y + h[63 + j * 2 + 1] * R.h];
       octx.strokeStyle = side === 0 ? '#4cc9e6' : '#f2a65a';
       octx.beginPath();
       for (const [a, b] of HAND_EDGES) { const pa = Q(a), pb = Q(b); octx.moveTo(pa[0], pa[1]); octx.lineTo(pb[0], pb[1]); }
@@ -2154,6 +2273,75 @@ async function ensureHands() {
   return !!ENG.hands;
 }
 const handsWanted = () => $('chkHands').checked && !!ENG.hands;
+const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const BS_NAMES = ['_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight',
+  'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight', 'eyeLookUpLeft',
+  'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 'mouthClose', 'mouthDimpleLeft',
+  'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight',
+  'mouthPucker', 'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft',
+  'mouthStretchRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'noseSneerLeft', 'noseSneerRight'];
+const BS_INDEX = new Map(BS_NAMES.map((n, k) => [n.toLowerCase(), k]));
+const BS_SWAP = BS_NAMES.map((n) => BS_NAMES.indexOf(n.replace(/Left|Right/, (m) => (m === 'Left' ? 'Right' : 'Left'))));
+const FACE_LEN = 4 + BS_NAMES.length;
+// Loads the face model (478 points, blendshapes, head pose); only with the newer MediaPipe engine.
+async function ensureFace() {
+  if (ENG.face) return true;
+  if (ENG.mode !== 'tasks') return false;
+  if (!ENG.faceLoading) {
+    ENG.faceLoading = (async () => {
+      const vision = await import(TASKS_URL);
+      const fileset = await vision.FilesetResolver.forVisionTasks(WASM_URL);
+      const make = (delegate) => vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate }, runningMode: 'VIDEO', numFaces: 1,
+        outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true,
+        minFaceDetectionConfidence: 0.5, minFacePresenceConfidence: 0.5, minTrackingConfidence: 0.5,
+      });
+      try { ENG.face = await make('GPU'); } catch (e) { console.warn('face model: GPU failed, using CPU', e); ENG.face = await make('CPU'); }
+      const edges = vision.FaceLandmarker.FACE_LANDMARKS_CONTOURS || [];
+      const idx = [...new Set(edges.flatMap((e) => [e.start, e.end]))], at = new Map(idx.map((v, k) => [v, k]));
+      ENG.faceIdx = idx; ENG.faceEdges = edges.map((e) => [at.get(e.start), at.get(e.end)]);
+      ENG.faceVotes = [0, 0]; ENG.faceVoteN = 0; ENG.faceAxis = null;
+    })().finally(() => { ENG.faceLoading = null; });
+  }
+  try { await ENG.faceLoading; } catch (e) { console.warn(e); toast('Das Gesichtstracking konnte nicht geladen werden. Der Kopf folgt dann nur der Körpererkennung.', true, 6000); }
+  return !!ENG.face;
+}
+const faceWanted = () => $('chkFace').checked && !!ENG.face;
+async function ensureExtras() {
+  if ($('chkFace').checked) await ensureFace();
+  if ($('chkHands').checked) await ensureHands();
+}
+// Head rotation and expressions from the face model, converted like the body landmarks.
+function faceFromResult(r, mirror) {
+  const img = r && r.faceLandmarks && r.faceLandmarks[0]; if (!img || img.length < 300) return null;
+  const P = (k) => [img[k].x * S.vidW, -img[k].y * S.vidH, -img[k].z * S.vidW];
+  const hx = v3.norm(v3.sub(P(263), P(33)));                                          // right eye corner → left eye corner
+  const hy = v3.norm(v3.sub(v3.mid(P(133), P(362)), v3.mid(P(61), P(291))));            // mouth → eyes
+  let q = frameQ(hx, hy, 'x');
+  const M = r.facialTransformationMatrixes && r.facialTransformationMatrixes[0] && r.facialTransformationMatrixes[0].data;
+  if (M && ENG.faceAxis !== -1) {
+    // The head-pose matrix is exact but its axis convention is checked once against the landmarks.
+    const cols = [[[M[0], M[1], M[2]], [M[4], M[5], M[6]]], [[M[0], -M[1], -M[2]], [-M[4], M[5], M[6]]]].map(([x, y]) => [v3.norm(x), v3.norm(y)]);
+    if (ENG.faceAxis == null) {
+      cols.forEach(([x, y], k) => { ENG.faceVotes[k] += v3.dot(x, hx) + v3.dot(y, hy); });
+      if (++ENG.faceVoteN >= 15) { const b = ENG.faceVotes[0] >= ENG.faceVotes[1] ? 0 : 1; ENG.faceAxis = ENG.faceVotes[b] / ENG.faceVoteN > 1.2 ? b : -1; }
+    } else q = frameQ(cols[ENG.faceAxis][0], cols[ENG.faceAxis][1], 'x');
+  }
+  const face = new Float32Array(FACE_LEN);
+  face.set(q, 0);
+  const cats = r.faceBlendshapes && r.faceBlendshapes[0] && r.faceBlendshapes[0].categories;
+  if (cats) for (const c of cats) { const k = BS_INDEX.get((c.categoryName || '').toLowerCase()); if (k != null) face[4 + k] = c.score; }
+  const idx = ENG.faceIdx || [], faceImg = new Float32Array(idx.length * 2);
+  idx.forEach((v, k) => { faceImg[k * 2] = mirror ? 1 - img[v].x : img[v].x; faceImg[k * 2 + 1] = img[v].y; });
+  return { face: mirror ? flipFace(face) : face, faceImg };
+}
+function flipFace(f) {
+  if (!f) return null;
+  const r = new Float32Array(f.length);
+  r[0] = f[0]; r[1] = -f[1]; r[2] = -f[2]; r[3] = f[3]; // rotation mirrored left ↔ right
+  for (let k = 0; k < BS_NAMES.length; k++) r[4 + k] = f[4 + BS_SWAP[k]];
+  return r;
+}
 // Assigns each detected hand to the nearest pose wrist and converts it like the body landmarks:
 // per side 63 values (21 points × xyz, metres, relative to the wrist) + 42 image coordinates.
 function handsFromResult(hr, poseImg, mirror) {
@@ -2185,6 +2373,7 @@ async function detect(stepMs, absTs, mirror) {
     if (r && r.landmarks && r.landmarks[0] && r.worldLandmarks && r.worldLandmarks[0]) {
       const fr = toFrame(r.landmarks[0], r.worldLandmarks[0], mirror);
       if (handsWanted()) { try { fr.hands = handsFromResult(ENG.hands.detectForVideo(video, ENG.ts), r.landmarks[0], mirror); } catch (e) { console.warn(e); } }
+      if (faceWanted()) { try { const fc = faceFromResult(ENG.face.detectForVideo(video, ENG.ts), mirror); if (fc) { fr.face = fc.face; fr.faceImg = fc.faceImg; } } catch (e) { console.warn(e); } }
       return fr;
     }
     return null;
@@ -2194,11 +2383,29 @@ async function detect(stepMs, absTs, mirror) {
   return null;
 }
 const MIRROR_PAIRS = [[1, 4], [2, 5], [3, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16], [17, 18], [19, 20], [21, 22], [23, 24], [25, 26], [27, 28], [29, 30], [31, 32]];
+// Swaps left and right of already tracked data, the same way detect(…, mirror = true) would have.
+function flipHand(h) {
+  if (!h) return null;
+  const r = Float32Array.from(h);
+  for (let j = 0; j < 21; j++) { r[j * 3] = -h[j * 3]; r[63 + j * 2] = 1 - h[63 + j * 2]; }
+  return r;
+}
+function flipFrame(f) {
+  if (!f) return f;
+  const w = new Float32Array(99), i = new Float32Array(66), v = new Float32Array(33);
+  for (let j = 0; j < 33; j++) {
+    const m = MIRROR_MAP[j];
+    w[j * 3] = -f.w[m * 3]; w[j * 3 + 1] = f.w[m * 3 + 1]; w[j * 3 + 2] = f.w[m * 3 + 2];
+    i[j * 2] = 1 - f.i[m * 2]; i[j * 2 + 1] = f.i[m * 2 + 1]; v[j] = f.v ? f.v[m] : 1;
+  }
+  const faceImg = f.faceImg ? f.faceImg.map((x, k) => (k % 2 ? x : 1 - x)) : f.faceImg;
+  return { ...f, w, i, v, hands: f.hands ? [flipHand(f.hands[1]), flipHand(f.hands[0])] : f.hands, face: f.face ? flipFace(f.face) : f.face, faceImg };
+}
 const MIRROR_MAP = (() => { const m = Array.from({ length: 33 }, (_, k) => k); MIRROR_PAIRS.forEach(([a, b]) => { m[a] = b; m[b] = a; }); return m; })();
 function toFrame(img, world, mirror) {
   const w = new Float32Array(99), i = new Float32Array(66), v = new Float32Array(33);
   for (let j = 0; j < 33; j++) {
-    if (mirror) { // selfie view: the person's right side drives the character's left, like a mirror
+    if (mirror) { // sides swapped: the person's right side drives the character's left (corrects a mirrored camera image)
       const a = world[MIRROR_MAP[j]], b = img[MIRROR_MAP[j]];
       w[j * 3] = -a.x; w[j * 3 + 1] = -a.y; w[j * 3 + 2] = -a.z;
       i[j * 2] = 1 - b.x; i[j * 2 + 1] = b.y; v[j] = b.visibility == null ? 1 : b.visibility;
@@ -2228,13 +2435,14 @@ function seek(t) {
 
 async function runTracking() {
   if (!S.videoURL || S.tracking) return;
-  const quality = $('selQuality').value, fps = parseFloat($('selFps').value);
+  const quality = engineQuality('video'), fps = parseFloat($('selFps').value);
   try { await ensureEngine(quality); } catch (e) {
     toast('Die Tracking-Engine konnte nicht geladen werden. Prüfe die Internetverbindung (MediaPipe wird von jsdelivr und storage.googleapis.com geladen).', true, 8000);
     return;
   }
-  if ($('chkHands').checked) await ensureHands();
+  await ensureExtras();
   setPlaying(false);
+  const swap = $('chkSwap').checked; S.dataFlipped = swap;
   S.tracking = true; S.cancel = false; S.fps = fps;
   $('btnTrack').disabled = true; $('btnCancel').hidden = false; $('tagTrack').textContent = 'tracke …';
   const dur = video.duration, n = Math.max(1, Math.floor(dur * fps));
@@ -2245,7 +2453,7 @@ async function runTracking() {
     const t = Math.min(dur - 0.001, k / fps);
     await seek(t);
     let fr = null;
-    try { fr = await detect(1000 / fps); } catch (e) { console.warn(e); }
+    try { fr = await detect(1000 / fps, null, swap); } catch (e) { console.warn(e); }
     if (fr) { raw[k] = fr; hits++; }
     if (k % 2 === 0 || k === n - 1) {
       $('prog').style.width = ((k + 1) / n * 100).toFixed(1) + '%';
@@ -2254,8 +2462,8 @@ async function runTracking() {
       if (fr) {
         // live preview of the current frame (raw, unsmoothed)
         if (!S.rig) setRig(DEFAULT_DIMS);
-        applyPose(S.rig, fr.w, null, fr.hands);
-        drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0], hands: fr.hands });
+        applyPose(S.rig, fr.w, null, fr.hands, fr.face);
+        drawOverlay({ w: fr.w, i: fr.i, off: [0, 0, 0], hands: fr.hands, faceImg: fr.faceImg });
       } else drawOverlay(null);
       await new Promise((r) => setTimeout(r, 0));
     }
@@ -2272,8 +2480,11 @@ async function runTracking() {
 }
 $('btnTrack').onclick = runTracking;
 $('btnCancel').onclick = () => { S.cancel = true; };
-$('selQuality').addEventListener('change', () => { if (S.videoURL || S.live) ensureEngine($('selQuality').value).catch(() => {}); });
+// "Automatisch": the most precise model for recorded video, the faster one for the live camera
+function engineQuality(kind) { const v = $('selQuality').value; return v === 'auto' ? (kind === 'live' ? 'full' : 'heavy') : v; }
+$('selQuality').addEventListener('change', () => { if (S.videoURL || S.live) ensureEngine(engineQuality(S.live ? 'live' : 'video')).catch(() => {}); });
 $('chkHands').addEventListener('change', () => { if ($('chkHands').checked && ENG.mode) ensureHands(); });
+$('chkFace').addEventListener('change', () => { if ($('chkFace').checked && ENG.mode) ensureFace(); });
 $('rngSmooth').addEventListener('input', () => {
   S.smooth = parseFloat($('rngSmooth').value); $('smoothVal').textContent = S.smooth.toFixed(2);
   if (S.raw.length && !S.tracking) { reprocess(true); showFrame(S.cur); }
@@ -2334,7 +2545,7 @@ async function loadCharacterFile(file) {
     const sc = 1.75 / h; holder.scale.setScalar(sc); holder.position.y = -box.min.y * sc;
     const roles = autoMap(info.skel);
     const helper = new THREE.SkeletonHelper(root); helper.visible = $('chkBones').checked; scene.add(helper);
-    S.char = { root, holder, helper, ...info, roles, rt: null, flipV, unit, name: file.name.replace(/\.[^.]+$/, ''), ext };
+    S.char = { root, holder, helper, ...info, roles, rt: null, flipV, unit, name: file.name.replace(/\.[^.]+$/, ''), ext, morphMap: buildMorphMap(root) };
     holder.visible = $('chkChar').checked;
     rebuildCharRetarget();
     buildMapTable();
@@ -2394,7 +2605,7 @@ function download(bytes, name, type = 'application/octet-stream') {
 function bake(target) {
   const out = [];
   for (let k = 0; k < S.frames.length; k++) {
-    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight, hands: S.frames[k].hands });
+    const r = target.rt.solve(S.frames[k].w, { offset: S.offsets[k], srcHipHeight: S.srcHipHeight, hands: S.frames[k].hands, face: S.frames[k].face });
     out.push({ local: r.local, hipsPos: r.hipsPos });
   }
   return out;
@@ -2484,9 +2695,10 @@ $('btnExpCharAnim').onclick = () => exportCharacter(false);
 
 // ---------------- tracking data JSON ----------------
 $('btnSaveJson').onclick = () => {
-  const data = { format: 'motion-rig-studio/1', fps: S.fps, width: S.vidW, height: S.vidH, video: S.videoName,
+  const data = { format: 'motion-rig-studio/1', fps: S.fps, width: S.vidW, height: S.vidH, video: S.videoName, flipped: !!S.dataFlipped,
     frames: S.raw.map((f) => (f ? { w: Array.from(f.w, (x) => +x.toFixed(4)), i: Array.from(f.i, (x) => +x.toFixed(4)), v: Array.from(f.v, (x) => +x.toFixed(2)),
-      ...(f.hands ? { h: f.hands.map((h) => (h ? Array.from(h, (x) => +x.toFixed(4)) : null)) } : {}) } : null)) };
+      ...(f.hands ? { h: f.hands.map((h) => (h ? Array.from(h, (x) => +x.toFixed(4)) : null)) } : {}),
+      ...(f.face ? { fc: Array.from(f.face, (x) => +x.toFixed(4)) } : {}) } : null)) };
   download(JSON.stringify(data), `${baseName()}_tracking.json`, 'application/json');
 };
 $('fileJson').addEventListener('change', async (e) => {
@@ -2495,8 +2707,10 @@ $('fileJson').addEventListener('change', async (e) => {
     const d = JSON.parse(await f.text());
     if (!d.frames || !Array.isArray(d.frames)) throw new Error('Keine Tracking-Daten gefunden.');
     S.raw = d.frames.map((x) => (x ? { w: Float32Array.from(x.w), i: Float32Array.from(x.i), v: Float32Array.from(x.v || new Array(33).fill(1)),
-      hands: Array.isArray(x.h) ? x.h.map((h) => (Array.isArray(h) && h.length === 105 ? Float32Array.from(h) : null)) : null } : null));
+      hands: Array.isArray(x.h) ? x.h.map((h) => (Array.isArray(h) && h.length === 105 ? Float32Array.from(h) : null)) : null,
+      face: Array.isArray(x.fc) && x.fc.length === FACE_LEN ? Float32Array.from(x.fc) : null } : null));
     S.fps = d.fps || 30; S.vidW = d.width || 720; S.vidH = d.height || 1280; S.videoName = d.video || f.name.replace(/\.json$/i, '');
+    S.dataFlipped = !!d.flipped; $('chkSwap').checked = S.dataFlipped;
     const sameVideo = S.videoURL && Math.abs((video.duration || 0) - S.raw.length / S.fps) < 0.5;
     if (!sameVideo) { S.demo = true; $('demoBadge').hidden = false; $('demoBadge').textContent = 'Geladene Tracking-Daten (ohne Video)'; }
     reprocess(); $('tagTrack').textContent = 'aus Datei'; $('stepTrack').classList.add('done');
@@ -2544,7 +2758,7 @@ async function startLive() {
     toast(e && e.name === 'NotAllowedError' ? 'Kamerazugriff wurde verweigert. Erlaube die Kamera in der Adressleiste und versuche es erneut.' : 'Kamera nicht verfügbar: ' + (e.message || e), true, 7000);
     return;
   }
-  try { await ensureEngine($('selQuality').value); if ($('chkHands').checked) await ensureHands(); } catch (e) {
+  try { await ensureEngine(engineQuality('live')); await ensureExtras(); } catch (e) {
     stream.getTracks().forEach((t) => t.stop()); $('btnLive').disabled = false;
     toast('Tracking-Engine nicht ladbar. Internetverbindung prüfen.', true, 6000); return;
   }
@@ -2554,14 +2768,14 @@ async function startLive() {
   await video.play().catch(() => {});
   await new Promise((r) => { if (video.videoWidth) r(); else video.onloadedmetadata = () => r(); setTimeout(r, 3000); });
   S.vidW = video.videoWidth || 1280; S.vidH = video.videoHeight || 720;
-  S.live = { stream, filter: new OneEuro(165), hfilter: [new OneEuro(105), new OneEuro(105)], handSeen: [0, 0], ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
+  S.live = { stream, filter: new OneEuro(165), hfilter: [new OneEuro(105), new OneEuro(105)], handSeen: [0, 0], ffilter: new OneEuro(FACE_LEN), faceSeen: 0, lastRaw: null, ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
   // Track each camera frame as soon as it arrives instead of waiting for the next screen refresh.
   if (video.requestVideoFrameCallback) {
     const L = S.live; L.rvfc = true;
     const tick = () => { if (S.live !== L) return; liveStep(performance.now()); video.requestVideoFrameCallback(tick); };
     video.requestVideoFrameCallback(tick);
   }
-  S.demo = false; $('demoBadge').hidden = true;
+  S.demo = false; $('demoBadge').hidden = true; S.dataFlipped = $('chkSwap').checked;
   S.raw = []; S.frames = []; S.offsets = []; updateExportButtons();
   if (!S.rig) setRig(DEFAULT_DIMS);
   setLiveUI(true); $('btnLive').disabled = false;
@@ -2577,23 +2791,46 @@ function stopLive() {
   if (!S.frames.length) { $('tagTrack').textContent = 'Kamera aus'; drawOverlay(null); $('videoMeta').textContent = 'Kamera gestoppt. Lade ein Video oder starte die Kamera erneut.'; }
 }
 $('btnLive').onclick = () => (S.live ? stopLive() : startLive());
-$('chkMirror').addEventListener('change', () => { if (S.live) { video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : ''; S.live.filter = new OneEuro(165); S.live.hfilter = [new OneEuro(105), new OneEuro(105)]; S.live.ref = null; } });
+$('chkMirror').addEventListener('change', () => { if (S.live) video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : ''; });
+$('chkSwap').addEventListener('change', () => {
+  const on = $('chkSwap').checked;
+  if (S.live) { S.live.filter = new OneEuro(165); S.live.hfilter = [new OneEuro(105), new OneEuro(105)]; S.live.ffilter = new OneEuro(FACE_LEN); S.live.lastRaw = null; S.live.ref = null; }
+  else if (S.raw.length && on !== S.dataFlipped && !S.tracking) { S.raw = S.raw.map(flipFrame); reprocess(true); showFrame(S.cur); }
+  S.dataFlipped = on;
+  toast(on ? 'Links und rechts sind jetzt getauscht.' : 'Links und rechts sind wieder seitenrichtig.');
+});
 
 const REACT = { fast: [2.5, 6], balanced: [1.2, 2], calm: [0.6, 0.8] }; // [min cut-off Hz, speed factor]
 function liveStep(now) {
   const L = S.live;
   if (!L || L.busy || video.readyState < 2 || video.currentTime === L.lastVT || !ENG.mode) return;
   L.lastVT = video.currentTime; L.busy = true;
-  const mirror = $('chkMirror').checked;
+  const mirror = $('chkSwap').checked;
   detect(0, now, mirror).then((fr) => {
     L.busy = false;
     if (!S.live) return;
     L.fpsCount++; if (now - L.fpsT > 1000) { L.fps = L.fpsCount * 1000 / (now - L.fpsT); L.fpsCount = 0; L.fpsT = now; }
     if (!fr) { drawOverlay(null); $('tagTrack').textContent = 'LIVE · keine Person'; return; }
+    fixSideSwap(fr, L.lastRaw); L.lastRaw = fr; // undo a momentary left/right confusion
     if (L.rec) L.rec.frames.push({ t: (now - L.rec.t0) / 1000, f: fr });
     // One-Euro smoothing: higher cut-off and speed factor = less delay, more jitter
     const [minC, beta] = REACT[$('selReact').value] || REACT.fast;
-    const sv = L.filter.filter([...fr.w, ...fr.i], now / 1000, minC, beta);
+    const input = [...fr.w, ...fr.i];
+    if (L.filter.x) for (let j = 0; j < 33; j++) if (fr.v[j] < VIS_MIN) { // hidden or uncertain joint: hold it instead of following guesses
+      for (let c = 0; c < 3; c++) input[j * 3 + c] = L.filter.x[j * 3 + c];
+      for (let c = 0; c < 2; c++) input[99 + j * 2 + c] = L.filter.x[99 + j * 2 + c];
+    }
+    const sv = L.filter.filter(input, now / 1000, minC, beta);
+    let face = null;
+    if (faceWanted()) {
+      if (fr.face) {
+        const fx = L.ffilter.x, fi = Float32Array.from(fr.face);
+        if (fx && fi[0] * fx[0] + fi[1] * fx[1] + fi[2] * fx[2] + fi[3] * fx[3] < 0) for (let c = 0; c < 4; c++) fi[c] = -fi[c];
+        face = L.ffilter.filter(fi, now / 1000, minC * 2, beta); L.faceSeen = now;
+        const l = Math.hypot(face[0], face[1], face[2], face[3]) || 1; for (let c = 0; c < 4; c++) face[c] /= l;
+      } else if (now - L.faceSeen < 300 && L.ffilter.x) face = Float32Array.from(L.ffilter.x);
+      else L.ffilter = new OneEuro(FACE_LEN);
+    }
     let hands = null;
     if (handsWanted()) {
       hands = [0, 1].map((s) => {
@@ -2603,14 +2840,14 @@ function liveStep(now) {
         L.hfilter[s] = new OneEuro(105); return null;
       });
     }
-    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v, hands };
+    const f = { w: sv.subarray(0, 99), i: sv.subarray(99, 165), v: fr.v, hands, face };
     L.buf.push(f); if (L.buf.length > 90) L.buf.shift();
     if (!L.dimsSet && L.buf.length >= 30) { const m = measureDims(L.buf); S.srcHipHeight = m.srcHipHeight; S.dims = m.dims; setRig(m.dims); L.dimsSet = true; }
     if (!L.ref) L.ref = f;
     let off = [0, 0, 0];
     if (S.rootMode !== 'off' && L.dimsSet) off = computeRootOffsets([L.ref, f], S.rootMode, S.vidW, S.vidH, S.srcHipHeight)[1];
-    applyPose(S.rig, f.w, off, hands); applyPose(S.char, f.w, off, hands);
-    drawOverlay({ w: f.w, i: f.i, hands });
+    applyPose(S.rig, f.w, off, hands, face); applyPose(S.char, f.w, off, hands, face);
+    drawOverlay({ w: f.w, i: f.i, hands, faceImg: fr.faceImg });
     $('tagTrack').textContent = `LIVE · ${Math.round(L.fps)} fps` + (L.rec ? ` · ● REC ${((now - L.rec.t0) / 1000).toFixed(1)} s` : '');
   }).catch((e) => { L.busy = false; console.warn(e); });
 }
