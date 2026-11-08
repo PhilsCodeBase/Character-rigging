@@ -2,12 +2,10 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-MUI9Ruc76rZVivKJgdlCRAU3GCqwbo7qOt7AKWTVR48=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-cpEzonDKQYJQUviTO19eHaUh8Xl57Em7t0DiONimIAQ=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* Layout: studio console — control rail left, twin monitors (video | 3D) right, transport bar beneath the monitors */
 :root {
@@ -1370,40 +1368,118 @@ for (const ev of ['wheel', 'pointerdown']) renderer.domElement.addEventListener(
 
 // ---------------- environments ----------------
 // 360° photos by Poly Haven (polyhaven.com, CC0), stored in env/ and loaded on first use.
-// height: camera height of the photo in metres, sets the scale of the projected floor.
-// turn: heading of the photo in radians. sun, hemi, shadow: light levels that suit the photo.
+// height: camera height of the photo in metres. turn: heading of the photo in radians.
+// sun, hemi, shadow: light levels that suit the photo.
+// Room shape, read off the panorama (azimuth 0–360° = left to right edge of the image):
+//   floor: [azimuth, degrees below the horizon] where the floor meets a wall or a large object.
+//   ceil:  [azimuth, degrees above the horizon] where the walls meet the ceiling.
+//   Outdoor scenes have no floor/ceil, only radius: the ground ends at that distance in metres.
 const ENVS = {
-  potsdamer_platz: { height: 1.7, turn: 2.95, sun: 2.2, hemi: 0.7, shadow: 0.4 },
-  snowy_park_01: { height: 1.7, turn: 1.7, sun: 1.4, hemi: 1.0, shadow: 0.3 },
-  forest_slope: { height: 1.7, turn: 0.94, sun: 1.8, hemi: 0.8, shadow: 0.4 },
-  empty_warehouse_01: { height: 1.6, turn: 1.88, sun: 1.2, hemi: 0.9, shadow: 0.3 },
-  gym_entrance: { height: 1.6, turn: 1.38, sun: 1.2, hemi: 0.9, shadow: 0.3 },
-  studio_small_09: { height: 1.5, turn: 0, sun: 1.4, hemi: 0.9, shadow: 0.3 },
-  lebombo: { height: 1.4, turn: 0.35, sun: 1.2, hemi: 0.9, shadow: 0.3 },
-  venice_sunset: { height: 1.7, turn: 2.2, sun: 1.8, hemi: 0.8, shadow: 0.35 },
-  autumn_forest_04: { height: 1.7, turn: 2.07, sun: 1.8, hemi: 0.8, shadow: 0.4 },
-  forest_cave: { height: 1.7, turn: 2.7, sun: 1.2, hemi: 0.9, shadow: 0.3 },
-  rainforest_trail: { height: 1.7, turn: 1.57, sun: 1.5, hemi: 0.8, shadow: 0.35 },
-  cannon: { height: 1.7, turn: 1.7, sun: 1.3, hemi: 1.0, shadow: 0.3 },
-  valley_of_desolation: { height: 1.7, turn: 1.07, sun: 2.0, hemi: 0.7, shadow: 0.45 },
-  aarfontein_sunrise: { height: 1.7, turn: 2.2, sun: 1.5, hemi: 0.7, shadow: 0.35 },
-  rogland_clear_night: { height: 1.7, turn: 2.58, sun: 0.5, hemi: 0.4, shadow: 0.15 },
-  passendorf_snow: { height: 1.7, turn: 0.75, sun: 2.2, hemi: 0.9, shadow: 0.45 },
-  burnt_warehouse: { height: 1.6, turn: 1.1, sun: 1.0, hemi: 0.7, shadow: 0.3 },
+  potsdamer_platz: { height: 1.7, turn: 2.95, sun: 2.2, hemi: 0.7, shadow: 0.4, radius: 30 },
+  snowy_park_01: { height: 1.7, turn: 1.7, sun: 1.4, hemi: 1.0, shadow: 0.3, radius: 20 },
+  forest_slope: { height: 1.7, turn: 0.94, sun: 1.8, hemi: 0.8, shadow: 0.4, radius: 12 },
+  empty_warehouse_01: { height: 1.6, turn: 1.88, sun: 1.2, hemi: 0.9, shadow: 0.3,
+    floor: [[0, -8], [10, -9], [20, -10], [30, -11], [40, -12], [55, -12.4], [70, -12], [80, -11.4], [92, -11], [97, -16], [110, -16], [125, -17], [135, -17],
+      [137, -10.4], [150, -10.4], [165, -13.6], [180, -13.6], [190, -6], [215, -5], [240, -4.4], [265, -4], [285, -2.4], [300, -2.6], [315, -3], [330, -4.6], [350, -6], [360, -8]],
+    ceil: [[0, 19], [30, 24], [60, 25.6], [90, 24], [120, 21], [150, 17], [180, 15], [240, 14], [260, 11], [290, 9], [330, 12], [360, 19]] },
+  gym_entrance: { height: 1.5, turn: 1.38, sun: 1.2, hemi: 0.9, shadow: 0.3,
+    floor: [[0, -14], [20, -13], [21, -40], [47, -40], [50, -47], [65, -48], [80, -45], [90, -39], [100, -31], [110, -25], [120, -19], [130, -14], [140, -11],
+      [142, -34], [175, -34], [178, -22], [190, -24], [200, -30], [212, -30], [215, -44], [265, -44], [270, -34], [290, -34], [295, -29], [320, -31], [345, -29], [355, -28], [358, -14], [360, -14]],
+    ceil: [[0, 22], [20, 28], [48, 45], [80, 43], [100, 38], [115, 30], [126, 19], [135, 10], [150, 10], [160, 19], [180, 25], [200, 30], [230, 35], [260, 32], [290, 28], [320, 26], [350, 25], [360, 22]] },
+  studio_small_09: { height: 1.5, turn: 0, sun: 1.4, hemi: 0.9, shadow: 0.3,
+    floor: [[0, -34], [22, -34], [30, -26], [40, -20], [60, -15], [95, -14], [130, -15], [148, -20], [155, -34], [175, -34], [185, -30], [195, -22], [220, -17],
+      [260, -16], [300, -16], [330, -18], [350, -24], [360, -34]],
+    ceil: [[0, 30], [40, 35], [60, 50], [90, 54], [120, 50], [145, 38], [180, 30], [360, 30]] },
+  lebombo: { height: 1.2, turn: 0.35, sun: 1.2, hemi: 0.9, shadow: 0.3,
+    floor: [[0, -24], [45, -25], [48, -29], [59, -29], [60, -17], [67, -17], [68, -20], [80, -24], [95, -28], [110, -29], [111, -17], [128, -17], [129, -27],
+      [133, -27], [134, -22], [150, -21], [155, -22], [165, -27], [180, -33], [190, -32], [200, -31], [210, -29.5], [220, -28], [230, -26.5], [240, -25],
+      [250, -24], [257, -22.5], [270, -25.5], [290, -26.5], [300, -26.5], [310, -25], [320, -23], [330, -21.5], [340, -20], [350, -22], [360, -24]],
+    ceil: [[0, 32], [45, 33], [50, 37], [60, 32], [80, 34], [100, 36], [110, 36], [130, 34], [150, 32], [155, 31], [170, 35], [180, 40], [200, 41.5], [230, 38],
+      [257, 30], [300, 30.5], [340, 30], [350, 33], [360, 32]] },
+  venice_sunset: { height: 1.7, turn: 2.2, sun: 1.8, hemi: 0.8, shadow: 0.35, radius: 25 },
+  autumn_forest_04: { height: 1.7, turn: 2.07, sun: 1.8, hemi: 0.8, shadow: 0.4, radius: 15 },
+  forest_cave: { height: 1.7, turn: 2.7, sun: 1.2, hemi: 0.9, shadow: 0.3, radius: 10 },
+  rainforest_trail: { height: 1.7, turn: 1.57, sun: 1.5, hemi: 0.8, shadow: 0.35, radius: 8 },
+  cannon: { height: 1.7, turn: 1.7, sun: 1.3, hemi: 1.0, shadow: 0.3, radius: 15 },
+  valley_of_desolation: { height: 1.7, turn: 1.07, sun: 2.0, hemi: 0.7, shadow: 0.45, radius: 15 },
+  aarfontein_sunrise: { height: 1.7, turn: 2.2, sun: 1.5, hemi: 0.7, shadow: 0.35, radius: 20 },
+  rogland_clear_night: { height: 1.7, turn: 2.58, sun: 0.5, hemi: 0.4, shadow: 0.15, radius: 15 },
+  passendorf_snow: { height: 1.7, turn: 0.75, sun: 2.2, hemi: 0.9, shadow: 0.45, radius: 30 },
+  burnt_warehouse: { height: 1.6, turn: 1.1, sun: 1.0, hemi: 0.7, shadow: 0.3,
+    floor: [[0, -22], [30, -20], [60, -15], [80, -11], [89, -11], [90, -19], [104, -19], [105, -8], [120, -10], [140, -14], [160, -16], [180, -19],
+      [195, -20], [225, -20], [240, -19], [270, -17], [300, -17.6], [322, -13], [330, -16], [350, -19], [360, -22]],
+    ceil: [[0, 32], [30, 30], [60, 20], [80, 14], [95, 18], [105, 11], [120, 11], [140, 19], [160, 25], [180, 30], [210, 26], [270, 30], [280, 34],
+      [330, 28], [360, 32]] },
 };
 const STUDIO_LOOK = { background: scene.background, fog: scene.fog, sunPos: sun.position.clone(), sun: sun.intensity, hemi: hemi.intensity, shadow: floor.material.opacity };
-// Sphere whose lower half is flattened into a floor, so the feet stand on the ground of the photo.
-const dome = (() => {
-  const geo = new THREE.SphereGeometry(30, 128, 64); geo.scale(1, 1, -1);
-  const pos = geo.getAttribute('position'), p = new THREE.Vector3(), edge = -1.5;
-  for (let i = 0; i < pos.count; i++) {
-    p.fromBufferAttribute(pos, i);
-    if (p.y < 0) { p.multiplyScalar(p.y < edge ? -1 / p.y : 1 - p.y * p.y / (3 * edge * edge)); p.toArray(pos.array, 3 * i); }
+// Room around the photo position: floor, walls and ceiling stand where the photo shows them.
+// Every point of the room takes its colour from the direction in which the photo camera saw it,
+// so edges line up with the image from the centre and the room keeps its depth when the camera moves.
+const ROOM_SEGMENTS = 144, DEG = Math.PI / 180;
+function lerpTable(tab, a) {
+  for (let i = 1; i < tab.length; i++) {
+    const [a0, v0] = tab[i - 1], [a1, v1] = tab[i];
+    if (a <= a1) return a1 === a0 ? v1 : v0 + (v1 - v0) * (a - a0) / (a1 - a0);
   }
-  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ fog: false, depthWrite: false, toneMapped: false }));
+  return tab[tab.length - 1][1];
+}
+function buildRoom(cfg) {
+  const h = cfg.height, n = ROOM_SEGMENTS, dist = new Float32Array(n), top = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = i * 360 / n;
+    if (cfg.floor) {
+      dist[i] = Math.min(40, h / Math.tan(Math.max(2, -lerpTable(cfg.floor, a)) * DEG));
+      top[i] = Math.min(60, h + dist[i] * Math.tan(Math.min(80, lerpTable(cfg.ceil, a)) * DEG));
+    } else { dist[i] = cfg.radius; top[i] = h + cfg.radius; }
+  }
+  const ceilH = top.reduce((s, v) => s + v, 0) / n;
+  const pos = [0, 0, 0, 0, ceilH, 0], idx = [];
+  for (let i = 0; i < n; i++) {
+    const a = i * 2 * Math.PI / n, x = -dist[i] * Math.cos(a), z = -dist[i] * Math.sin(a);
+    pos.push(x, 0, z, x, top[i], z);
+  }
+  for (let i = 0; i < n; i++) {
+    const b0 = 2 + 2 * i, t0 = b0 + 1, b1 = 2 + 2 * ((i + 1) % n), t1 = b1 + 1;
+    idx.push(0, b0, b1, b0, t0, b1, b1, t0, t1, 1, t1, t0);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx);
+  return { geo, dist, top };
+}
+const room = (() => {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: null }, camH: { value: 1.6 } },
+    vertexShader: 'varying vec3 vLocal;\nvoid main() { vLocal = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: [
+      'uniform sampler2D map; uniform float camH; varying vec3 vLocal;',
+      'void main() {',
+      '  vec3 d = normalize(vLocal - vec3(0.0, camH, 0.0));',
+      '  vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5);',
+      '  vec2 dx = dFdx(uv), dy = dFdy(uv);',
+      '  dx.x -= floor(dx.x + 0.5); dy.x -= floor(dy.x + 0.5);', // no mip seam where the panorama wraps around
+      '  gl_FragColor = textureGrad(map, uv, dx, dy);',
+      '  #include <colorspace_fragment>',
+      '}'].join('\n'),
+    side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+  });
+  const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
   mesh.renderOrder = -1; mesh.frustumCulled = false; mesh.visible = false; scene.add(mesh);
-  return mesh;
+  return { mesh, shape: null, cache: new Map() };
 })();
+// Keeps the camera and its target inside the room, so it never looks at the room from outside.
+const keepLocal = new THREE.Vector3();
+function keepInRoom(p) {
+  const s = room.shape; if (!s) return;
+  keepLocal.copy(p).applyAxisAngle(THREE.Object3D.DEFAULT_UP, -room.mesh.rotation.y);
+  const r = Math.hypot(keepLocal.x, keepLocal.z), n = ROOM_SEGMENTS;
+  const a = ((Math.atan2(-keepLocal.z, -keepLocal.x) / DEG) % 360 + 360) % 360, f = a / 360 * n, i0 = Math.floor(f) % n, i1 = (i0 + 1) % n, t = f - Math.floor(f);
+  const wall = (s.dist[i0] * (1 - t) + s.dist[i1] * t) * 0.92 - 0.1, roof = (s.top[i0] * (1 - t) + s.top[i1] * t) * 0.92 - 0.1;
+  let changed = false;
+  if (r > wall && r > 1e-6) { const k = Math.max(0, wall) / r; keepLocal.x *= k; keepLocal.z *= k; changed = true; }
+  if (keepLocal.y > roof) { keepLocal.y = roof; changed = true; }
+  if (keepLocal.y < 0.05) { keepLocal.y = 0.05; changed = true; }
+  if (changed) p.copy(keepLocal.applyAxisAngle(THREE.Object3D.DEFAULT_UP, room.mesh.rotation.y));
+}
 // Direction of the brightest part of the sky, so shadows fall the same way as in the photo.
 function findLightDir(img) {
   const W = 128, H = 32, c = document.createElement('canvas'); c.width = W; c.height = H * 2;
@@ -1437,12 +1513,14 @@ function applyEnv(cfg, env) {
   scene.background = on ? null : STUDIO_LOOK.background;
   scene.fog = on ? null : STUDIO_LOOK.fog;
   scene.environment = on ? env.light : null;
-  grid.visible = !on; dome.visible = on;
+  grid.visible = !on; room.mesh.visible = on;
   if (on) {
-    dome.material.map = env.tex; dome.material.needsUpdate = true;
-    dome.scale.setScalar(cfg.height); dome.position.y = cfg.height - 0.01; dome.rotation.y = cfg.turn;
+    if (!room.cache.has(cfg)) room.cache.set(cfg, buildRoom(cfg));
+    room.shape = room.cache.get(cfg); room.mesh.geometry = room.shape.geo;
+    room.mesh.material.uniforms.map.value = env.tex; room.mesh.material.uniforms.camH.value = cfg.height;
+    room.mesh.rotation.y = cfg.turn;
     sun.position.copy(env.dir).applyAxisAngle(THREE.Object3D.DEFAULT_UP, cfg.turn).multiplyScalar(6);
-  } else sun.position.copy(STUDIO_LOOK.sunPos);
+  } else { room.shape = null; sun.position.copy(STUDIO_LOOK.sunPos); }
   sun.intensity = look.sun; hemi.intensity = look.hemi; floor.material.opacity = look.shadow;
   controls.maxPolarAngle = on ? Math.PI * 0.49 : Math.PI; // stay above the photo's floor
 }
@@ -1629,6 +1707,7 @@ function loop(now) {
   }
   stepZoom(dt);
   controls.update();
+  keepInRoom(camera.position); keepInRoom(controls.target);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }

@@ -1,0 +1,8 @@
+Schriften lokal eingebunden (keine Verbindung zu Google beim Laden der Seite).
+Quelle: Google Fonts (fonts.google.com), abgerufen 2026-11-08.
+Lizenz: SIL Open Font License 1.1 (https://openfontlicense.org) – Web-Einbettung erlaubt.
+
+Schriften:
+- IBM Plex Mono
+- IBM Plex Sans
+- IBM Plex Sans Condensed
