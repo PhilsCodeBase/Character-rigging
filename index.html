@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-cpEzonDKQYJQUviTO19eHaUh8Xl57Em7t0DiONimIAQ=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-6g6L/LPHnfSc+zQLntCioUjs5dZcKwx07M6Jxg6clF0=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -95,6 +95,19 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 .viewctl.zoom button:hover { background: #2a323d; }
 .viewctl.zoom button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .viewctl.zoom button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.viewctl.zoom button svg.solid { fill: currentColor; stroke: none; }
+.viewctl.zoom .sep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
+.viewctl.zoom #btnVidRec { color: var(--err); }
+.viewctl.zoom #btnVidRec[aria-pressed="true"] { background: rgba(255, 123, 123, .18); }
+.fs-only { display: none !important; }
+#mon3d.full-on .fs-only { display: inline-flex !important; }
+#mon3d.is-full { position: fixed; inset: 0; z-index: 40; }
+#mon3d.full-on .legend { display: none; }
+#mon3d.full-on .viewctl, #mon3d.full-on .tag { transition: opacity .3s; }
+#mon3d.full-on.idle .viewctl, #mon3d.full-on.idle .tag { opacity: 0; pointer-events: none; }
+#mon3d.full-on.idle, #mon3d.full-on.idle * { cursor: none !important; }
+#pip { position: absolute; z-index: 2; border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, .5); pointer-events: none; }
+.rec-badge { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 4; font: 500 12px/1 var(--font-mono); color: #fff; background: rgba(180, 30, 30, .85); border-radius: 999px; padding: 6px 10px; pointer-events: none; }
 .viewctl.zoom output { min-width: 46px; text-align: center; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
 @media (pointer: coarse) { .viewctl.zoom button { width: 44px; height: 44px; } .viewctl.env select { min-height: 44px; } }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: var(--accent); }
@@ -241,6 +254,7 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           <button class="btn block" id="btnExpRig">Tracking-Skelett + Animation (.fbx)</button>
           <button class="btn primary block" id="btnExpChar" disabled>Charakter + Animation (.fbx)</button>
           <button class="btn block" id="btnExpCharAnim" disabled>Nur Animation fürs Charakter-Rig (.fbx)</button>
+          <button class="btn block" id="btnExpVideo">3D-Ansicht als Video (.mp4/.webm)</button>
           <div class="row">
             <label>Einheit Charakter-Export
               <select id="selUnit">
@@ -309,7 +323,13 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
             <output id="zoomVal" aria-live="off">100 %</output>
             <button type="button" id="btnZoomIn" aria-label="Hineinzoomen" title="Hineinzoomen">+</button>
             <button type="button" id="btnZoomHome" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3.2h3.2"/></svg></button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" class="fs-only" id="btnPlay2" aria-label="Abspielen / Pause" title="Abspielen / Pause (Leertaste)"><svg viewBox="0 0 16 16" aria-hidden="true" class="solid" id="icoPlay2"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+            <button type="button" id="btnFull" aria-pressed="false" aria-label="Vollbild" title="Vollbild"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
+            <button type="button" id="btnVidRec" aria-pressed="false" aria-label="Ansicht als Video aufnehmen" title="Ansicht als Video aufnehmen"><svg viewBox="0 0 16 16" aria-hidden="true" class="solid" id="icoVidRec"><circle cx="8" cy="8" r="4.5"/></svg></button>
           </div>
+          <canvas id="pip" hidden aria-hidden="true"></canvas>
+          <div class="rec-badge" id="recBadge" hidden>● REC <span id="recTime">0:00</span></div>
           <div class="legend"><span>links</span><span class="r">rechts</span></div>
         </div>
       </div>
@@ -1678,7 +1698,7 @@ function drawOverlay(s) {
 const video = $('video');
 function setPlaying(p) {
   S.playing = p;
-  $('icoPlay').innerHTML = p ? '<path d="M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z"/>' : '<path d="M4 2.5v11l9-5.5z"/>';
+  $('icoPlay').innerHTML = $('icoPlay2').innerHTML = p ? '<path d="M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z"/>' : '<path d="M4 2.5v11l9-5.5z"/>';
   if (!S.demo && S.videoURL) {
     if (p) { if (video.ended || video.currentTime >= video.duration - 0.05) video.currentTime = 0; video.play().catch(() => {}); } else video.pause();
   }
@@ -1695,6 +1715,133 @@ $('scrub').addEventListener('input', () => {
   showFrame(f);
 });
 
+// ---------------- full view, source picture-in-picture, video export ----------------
+const mon3d = $('mon3d'), pip = $('pip'), pctx = pip.getContext('2d');
+let fullOn = false, idleTimer = 0;
+function setFull(on) {
+  fullOn = on; mon3d.classList.toggle('full-on', on); pip.hidden = !on;
+  if (!on) mon3d.classList.remove('is-full', 'idle');
+  $('btnFull').setAttribute('aria-pressed', String(on));
+  $('btnFull').title = $('btnFull').ariaLabel = on ? 'Vollbild beenden (Esc)' : 'Vollbild';
+  pokeIdle();
+}
+$('btnFull').onclick = () => {
+  if (fullOn) { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setFull(false); return; }
+  // Without element fullscreen (iPhone, embedded previews) the 3D view fills the browser window instead.
+  const fillWindow = () => { if (!fullOn) { mon3d.classList.add('is-full'); setFull(true); } };
+  if (mon3d.requestFullscreen) { mon3d.requestFullscreen().catch(fillWindow); setTimeout(fillWindow, 700); } else fillWindow();
+};
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement === mon3d) { mon3d.classList.remove('is-full'); setFull(true); }
+  else if (fullOn && !mon3d.classList.contains('is-full')) setFull(false);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mon3d.classList.contains('is-full')) setFull(false); });
+// In full view the buttons and the mouse pointer fade out after a moment without movement.
+function pokeIdle() {
+  mon3d.classList.remove('idle'); clearTimeout(idleTimer);
+  if (fullOn) idleTimer = setTimeout(() => mon3d.classList.add('idle'), 2500);
+}
+for (const ev of ['pointermove', 'pointerdown', 'wheel']) mon3d.addEventListener(ev, pokeIdle, { passive: true });
+$('btnPlay2').onclick = () => { if (!S.tracking) setPlaying(!S.playing); };
+
+// Source picture: video frame plus tracked skeleton, placed bottom right in a W×H frame.
+function pipRect(W, H) {
+  const ar = S.vidW / S.vidH || 16 / 9, m = Math.round(Math.min(W, H) * 0.025);
+  let w = W * 0.24, h = w / ar; if (h > H * 0.38) { h = H * 0.38; w = h * ar; }
+  return { x: W - w - m, y: H - h - m, w, h };
+}
+function drawSource(g, r, scale) {
+  const rad = 8 * scale;
+  g.save();
+  g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, rad); g.clip();
+  g.fillStyle = '#090b0e'; g.fillRect(r.x, r.y, r.w, r.h);
+  if (!S.demo && video.readyState >= 2) {
+    if (S.live && $('chkMirror').checked) { g.save(); g.translate(r.x + r.w, r.y); g.scale(-1, 1); g.drawImage(video, 0, 0, r.w, r.h); g.restore(); }
+    else g.drawImage(video, r.x, r.y, r.w, r.h);
+  }
+  const R = contentRect();
+  if (R.w > 1 && R.h > 1) g.drawImage(ov, R.x, R.y, R.w, R.h, r.x, r.y, r.w, r.h);
+  g.restore();
+  g.strokeStyle = 'rgba(255, 255, 255, .35)'; g.lineWidth = Math.max(1, scale);
+  g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, rad); g.stroke();
+}
+let pipKey = '';
+function drawPip() {
+  if (!fullOn) return;
+  const W = mon3d.clientWidth, H = mon3d.clientHeight, r = pipRect(W, H), dpr = Math.min(devicePixelRatio || 1, 2);
+  const key = [W, H, Math.round(r.w), Math.round(r.h)].join();
+  if (key !== pipKey) {
+    pipKey = key;
+    Object.assign(pip.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    pip.width = Math.round(r.w * dpr); pip.height = Math.round(r.h * dpr);
+  }
+  pctx.clearRect(0, 0, pip.width, pip.height);
+  drawSource(pctx, { x: 0, y: 0, w: pip.width, h: pip.height }, 0);
+}
+
+// Video export: 3D view and source picture are drawn into a separate canvas and only that is recorded,
+// so neither the mouse pointer nor any buttons end up in the video.
+const vrec = { on: false };
+function pickVideoType() {
+  return ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+    .find((t) => MediaRecorder.isTypeSupported(t));
+}
+function startVideoExport() {
+  if (vrec.on || S.tracking) return;
+  const can = window.MediaRecorder && HTMLCanvasElement.prototype.captureStream;
+  const type = can && pickVideoType();
+  if (!type) { toast('Dieser Browser kann keine Videos aufnehmen. Bitte aktuelles Chrome, Edge oder Safari verwenden.', true, 7000); return; }
+  const src = renderer.domElement, k = Math.min(1, 1920 / Math.max(src.width, src.height));
+  const W = Math.max(2, Math.round(src.width * k / 2) * 2), H = Math.max(2, Math.round(src.height * k / 2) * 2);
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  let mr;
+  try { mr = new MediaRecorder(canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: Math.round(W * H * 30 * 0.12) }); }
+  catch (e) { console.error(e); toast('Die Videoaufnahme konnte nicht gestartet werden: ' + (e.message || e), true, 7000); return; }
+  const chunks = [];
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    if (!chunks.length) { toast('Die Aufnahme ist leer geblieben.', true); return; }
+    const ext = type.startsWith('video/mp4') ? 'mp4' : 'webm';
+    download(new Blob(chunks, { type: type.split(';')[0] }), `${S.videoName || 'motion-rig'}-3d.${ext}`, type.split(';')[0]);
+    toast(`Video gespeichert (${W}×${H}, ${ext.toUpperCase()}).`);
+  };
+  // A recorded clip is exported once from the start; the live camera records until you stop.
+  const whole = !S.live && S.frames.length > 0;
+  if (whole) {
+    S.clock = 0;
+    if (!S.demo && S.videoURL) video.currentTime = 0;
+    showFrame(0); setPlaying(true);
+  }
+  Object.assign(vrec, { on: true, mr, ctx, W, H, whole, lastF: 0, t0: performance.now(), shownSec: -1 });
+  mr.start(500);
+  $('btnVidRec').setAttribute('aria-pressed', 'true');
+  $('btnVidRec').title = $('btnVidRec').ariaLabel = 'Aufnahme beenden';
+  $('icoVidRec').innerHTML = '<rect x="4" y="4" width="8" height="8" rx="1"/>';
+  $('btnExpVideo').textContent = 'Aufnahme beenden'; $('recBadge').hidden = false;
+}
+function stopVideoExport() {
+  if (!vrec.on) return;
+  vrec.on = false;
+  if (vrec.mr.state !== 'inactive') vrec.mr.stop();
+  $('btnVidRec').setAttribute('aria-pressed', 'false');
+  $('btnVidRec').title = $('btnVidRec').ariaLabel = 'Ansicht als Video aufnehmen';
+  $('icoVidRec').innerHTML = '<circle cx="8" cy="8" r="4.5"/>';
+  $('btnExpVideo').textContent = '3D-Ansicht als Video (.mp4/.webm)'; $('recBadge').hidden = true;
+}
+function recordFrame(now) {
+  if (!vrec.on) return;
+  if (vrec.whole && S.cur < vrec.lastF - 1) { stopVideoExport(); return; } // clip wrapped around: one full pass is done
+  vrec.lastF = S.cur;
+  const { ctx, W, H } = vrec;
+  ctx.drawImage(renderer.domElement, 0, 0, W, H); // right after render, while the WebGL frame is still valid
+  drawSource(ctx, pipRect(W, H), W / Math.max(1, mon3d.clientWidth));
+  const sec = Math.floor((now - vrec.t0) / 1000);
+  if (sec !== vrec.shownSec) { vrec.shownSec = sec; $('recTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }
+}
+$('btnVidRec').onclick = $('btnExpVideo').onclick = () => (vrec.on ? stopVideoExport() : startVideoExport());
+
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -1709,6 +1856,7 @@ function loop(now) {
   controls.update();
   keepInRoom(camera.position); keepInRoom(controls.target);
   renderer.render(scene, camera);
+  drawPip(); recordFrame(now);
   requestAnimationFrame(loop);
 }
 
