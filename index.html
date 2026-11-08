@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-O68tn8W7MCttepy+Xetn7Ih0RyTtO/IomCRu9lqS7io=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-gw7yb0YmqdkAD+4hrr1UPMH7j8UkGfmyEC3yuSsau6s=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -659,7 +659,9 @@ const IGNORE_TOK = new Set(['mixamorig', 'mixamorig1', 'mixamorig2', 'mixamorig3
 function tokenizeBone(name) {
   let s = String(name || '');
   s = s.replace(/^.*[:|]/, '');
-  s = s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  // Mixamo prefixes: three.js drops the ':' of "mixamorig9:Hips", leaving "mixamorig9Hips"
+  s = s.replace(/^mixamorig\d*_?(?=[A-Z_])/i, '');
+  s = s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/([0-9])([A-Z][a-z])/g, '$1 $2');
   const toks = s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   let side = null; const core = [];
   for (const t of toks) {
