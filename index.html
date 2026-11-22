@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-pionr8ivkx2ZRPW41UomsBqVh9u5UyFrRe4T3Y99lbc=' 'sha256-c6AobUOdqjkDgmqQhuQ9yRc+wx7R1bL0wnowOWYrd9Q=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-D17pVbOwjcwy7d05mXJ1dWw8IgiSpKK12FsiE5Jk6dg=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-pionr8ivkx2ZRPW41UomsBqVh9u5UyFrRe4T3Y99lbc=' 'sha256-c6AobUOdqjkDgmqQhuQ9yRc+wx7R1bL0wnowOWYrd9Q=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -163,6 +163,32 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
 }
 @media (max-width: 560px) { .monitors { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: 92vh; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* --- Schlanke Schritte: einklappbar, Wichtiges hervorgehoben --- */
+.step > h2 { cursor: pointer; align-items: center; user-select: none; }
+.step > h2::after { content: "▸"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .15s; }
+.step.open > h2::after { transform: rotate(90deg); }
+.step:not(.open) { padding-bottom: 12px; }
+.step:not(.open) > :not(h2) { display: none; }
+.step:not(.open) > h2 { color: var(--muted); }
+.step.next { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(76,201,230,.35); }
+.step.next > h2 .n { box-shadow: 0 0 0 3px rgba(76,201,230,.25); }
+.more-body .field, .more-body .check { color: var(--fg); }
+#tourDim { position: fixed; inset: 0; z-index: 70; display: none; }
+#tourDim.show { display: block; }
+#tourHole { position: fixed; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(4,6,10,.72), 0 0 0 2px var(--accent); pointer-events: none; transition: all .25s; }
+#tourPop { position: fixed; z-index: 71; width: min(340px, 90vw); background: var(--panel-2); border: 1px solid var(--accent); border-radius: 12px; padding: 16px; box-shadow: 0 14px 40px rgba(0,0,0,.6); }
+#tourPop h3 { margin: 0 0 6px; font: 600 15px/1.3 var(--font-display); }
+#tourPop p { margin: 0 0 12px; color: #c9d0da; font-size: 13.5px; }
+#tourPop .tnav { display: flex; align-items: center; gap: 6px; }
+#tourPop .tnav .btn { padding: 6px 10px; font-size: 13px; }
+#tourPop .tcount { color: var(--muted); font: 11px var(--font-mono); margin-right: auto; }
+#tourAsk { position: fixed; inset: 0; z-index: 72; background: rgba(5,7,10,.7); display: none; align-items: center; justify-content: center; padding: 16px; }
+#tourAsk.show { display: flex; }
+#tourAsk .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; width: min(440px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+#tourAsk h2 { margin: 0 0 10px; font: 600 16px/1.2 var(--font-display); }
+#tourAsk p { margin: 0 0 16px; color: #c9d0da; }
+.btn.sm { padding: 5px 10px; font-size: 13px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -191,6 +217,7 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
     <span id="engine" class="chip">Tracking-Engine: nicht geladen</span>
     <span class="spacer"></span>
     <span class="hint">Video → Pose-Tracking → Bone-Rig → Charakter → FBX</span>
+    <button class="btn sm" id="btnTour" type="button" title="Kurze Tour durch die wichtigsten Funktionen">? Tour</button>
   </header>
   <div class="main">
     <aside>
@@ -206,37 +233,24 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           <button class="btn primary" id="btnLive" style="flex:1">Live-Kamera starten</button>
           <label class="check" title="Zeigt das Kamerabild wie einen Spiegel an. Ändert nur die Anzeige, nicht den Charakter."><input type="checkbox" id="chkMirror" checked> Bild spiegeln</label>
         </div>
-        <label class="field">Live-Reaktion
-          <select id="selReact">
-            <option value="fast" selected>Direkt · schnellste Reaktion</option>
-            <option value="balanced">Ausgewogen</option>
-            <option value="calm">Ruhig · weniger Zittern</option>
-          </select>
-        </label>
+        <details class="more">
+          <summary>Live-Reaktion</summary>
+          <div class="more-body">
+            <label class="field">Reaktionsverhalten
+              <select id="selReact">
+                <option value="fast" selected>Direkt · schnellste Reaktion</option>
+                <option value="balanced">Ausgewogen</option>
+                <option value="calm">Ruhig · weniger Zittern</option>
+              </select>
+            </label>
+          </div>
+        </details>
         <button class="btn block" id="btnRec" hidden>● Aufnahme starten</button>
         <div class="meta" id="videoMeta">Noch kein Video. Rechts läuft eine Demo-Bewegung.</div>
       </section>
 
       <section class="step" id="stepTrack">
         <h2><span class="n">2</span>Bewegung tracken</h2>
-        <label class="field">Genauigkeit
-          <select id="selQuality">
-            <option value="auto" selected>Automatisch · Video genau, live schnell</option>
-            <option value="lite">Lite · schnell</option>
-            <option value="full">Full · ausgewogen</option>
-            <option value="heavy">Heavy · genau, langsam</option>
-          </select>
-        </label>
-        <label class="field">Personen im Bild
-          <select id="selPersons">
-            <option value="1" selected>1 Person</option>
-            <option value="2">bis zu 2 Personen</option>
-            <option value="3">bis zu 3 Personen</option>
-            <option value="4">bis zu 4 Personen</option>
-          </select>
-        </label>
-        <label class="check"><input type="checkbox" id="chkFace" checked><span>Gesicht genau tracken <span class="meta">(Kopfdrehung und Mimik)</span></span></label>
-        <label class="check"><input type="checkbox" id="chkHands"><span>Hände und Finger tracken <span class="meta">(etwas langsamer)</span></span></label>
         <div class="row">
           <button class="btn primary" id="btnTrack" disabled style="flex:1">Video tracken</button>
           <button class="btn" id="btnCancel" hidden>Abbrechen</button>
@@ -244,8 +258,26 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
         <div class="progress"><i id="prog"></i></div>
         <div class="meta" id="trackMeta">33 Körperpunkte pro Bild, dazu 478 Gesichtspunkte und mit Fingertracking 21 Punkte pro Hand.</div>
         <details class="more">
-          <summary>Feineinstellungen</summary>
+          <summary>Tracking-Einstellungen</summary>
           <div class="more-body">
+            <label class="field">Genauigkeit
+              <select id="selQuality">
+                <option value="auto" selected>Automatisch · Video genau, live schnell</option>
+                <option value="lite">Lite · schnell</option>
+                <option value="full">Full · ausgewogen</option>
+                <option value="heavy">Heavy · genau, langsam</option>
+              </select>
+            </label>
+            <label class="field">Personen im Bild
+              <select id="selPersons">
+                <option value="1" selected>1 Person</option>
+                <option value="2">bis zu 2 Personen</option>
+                <option value="3">bis zu 3 Personen</option>
+                <option value="4">bis zu 4 Personen</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="chkFace" checked><span>Gesicht genau tracken <span class="meta">(Kopfdrehung und Mimik)</span></span></label>
+            <label class="check"><input type="checkbox" id="chkHands"><span>Hände und Finger tracken <span class="meta">(etwas langsamer)</span></span></label>
             <label class="field">Abtastrate
               <select id="selFps">
                 <option value="24">24 fps</option>
@@ -276,23 +308,28 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
           FBX, GLB oder VRM · geriggt, in T- oder A-Pose
         </label>
         <div class="meta" id="charMeta">Kein Charakter geladen.</div>
-        <details class="map" id="mapBox" hidden>
-          <summary>Bone-Zuordnung <span id="mapCount" class="meta"></span></summary>
-          <div class="maptable" id="mapTable"></div>
+        <details class="more" id="charOpts">
+          <summary>Zuordnung, Licht und Anzeige</summary>
+          <div class="more-body">
+<details class="map" id="mapBox" hidden>
+              <summary>Bone-Zuordnung <span id="mapCount" class="meta"></span></summary>
+              <div class="maptable" id="mapTable"></div>
+            </details>
+            <label class="check" title="Deine rechte Seite bewegt dann die linke Seite des Charakters. Nötig, wenn Kamera oder Video ein gespiegeltes Bild liefern."><input type="checkbox" id="chkSwap"><span>Links und rechts tauschen <span class="meta">(bei gespiegeltem Kamerabild)</span></span></label>
+            <label class="field" id="followBox" hidden>Charakter folgt
+              <select id="selFollow"></select>
+            </label>
+            <label class="field">Licht auf Figur <span id="lightVal" class="meta">100 %</span>
+              <input type="range" id="rngLight" min="0" max="2" step="0.05" value="1" aria-describedby="lightVal">
+            </label>
+            <div class="toggles">
+              <span class="toggles-label">Anzeigen:</span>
+              <label><input type="checkbox" id="chkRig" checked> Tracking-Skelett</label>
+              <label><input type="checkbox" id="chkChar" checked> Charakter</label>
+              <label><input type="checkbox" id="chkBones"> Bones</label>
+            </div>
+          </div>
         </details>
-        <label class="check" title="Deine rechte Seite bewegt dann die linke Seite des Charakters. Nötig, wenn Kamera oder Video ein gespiegeltes Bild liefern."><input type="checkbox" id="chkSwap"><span>Links und rechts tauschen <span class="meta">(bei gespiegeltem Kamerabild)</span></span></label>
-        <label class="field" id="followBox" hidden>Charakter folgt
-          <select id="selFollow"></select>
-        </label>
-        <label class="field">Licht auf Figur <span id="lightVal" class="meta">100 %</span>
-          <input type="range" id="rngLight" min="0" max="2" step="0.05" value="1" aria-describedby="lightVal">
-        </label>
-        <div class="toggles">
-          <span class="toggles-label">Anzeigen:</span>
-          <label><input type="checkbox" id="chkRig" checked> Tracking-Skelett</label>
-          <label><input type="checkbox" id="chkChar" checked> Charakter</label>
-          <label><input type="checkbox" id="chkBones"> Bones</label>
-        </div>
       </section>
 
       <section class="step" id="stepExport">
@@ -398,6 +435,13 @@ details.map summary { cursor: pointer; font-size: 13px; color: var(--fg); }
   </div>
 </dialog>
 <div class="toast" id="toast" hidden></div>
+<div id="tourAsk"><div class="card" role="dialog" aria-modal="true" aria-labelledby="tourAskT">
+  <h2 id="tourAskT">Willkommen im Motion Rig Studio</h2>
+  <p>Eine kurze Tour zeigt dir in 7 Schritten die wichtigsten Funktionen. Du kannst sie überspringen und später über „? Tour“ oben rechts starten.</p>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="tourSkip" type="button">Überspringen</button><button class="btn primary" id="tourStart" type="button">Tour starten</button></div>
+</div></div>
+<div id="tourDim"><div id="tourHole"></div><div id="tourPop" role="dialog" aria-live="polite"><h3 id="tourT"></h3><p id="tourP"></p>
+  <div class="tnav"><span class="tcount" id="tourN"></span><button class="btn" id="tourEnd" type="button">Überspringen</button><button class="btn" id="tourBack" type="button">Zurück</button><button class="btn primary" id="tourNext" type="button">Weiter</button></div></div></div>
 <div class="fatal" id="fatal" hidden><b>Das Tool konnte nicht starten</b><span id="fatalMsg"></span></div>
 <script>
 // Watchdog (classic script): reports when the main module never starts, e.g. in a file preview or without internet.
@@ -3343,6 +3387,85 @@ document.addEventListener('drop', function (e) {
 
 })();
 
+</script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var order = ['stepVideo', 'stepTrack', 'stepChar', 'stepExport'];
+  var steps = order.map($);
+  function setOpen(el, on) { el.classList.toggle('open', on); el.firstElementChild.setAttribute('aria-expanded', String(on)); }
+  function markNext() {
+    var next = null;
+    for (var i = 0; i < steps.length; i++) { if (!steps[i].classList.contains('done')) { next = steps[i]; break; } }
+    steps.forEach(function (st) { st.classList.toggle('next', st === next); });
+  }
+  steps.forEach(function (st, i) {
+    var h = st.firstElementChild; h.setAttribute('role', 'button'); h.tabIndex = 0;
+    function toggle() { setOpen(st, !st.classList.contains('open')); }
+    h.addEventListener('click', toggle);
+    h.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    setOpen(st, i === 0);
+    var wasDone = st.classList.contains('done');
+    new MutationObserver(function () {
+      var d = st.classList.contains('done');
+      if (d && !wasDone) { setOpen(st, false); if (steps[i + 1]) setOpen(steps[i + 1], true); }
+      wasDone = d; markNext();
+    }).observe(st, { attributes: true, attributeFilter: ['class'] });
+  });
+  markNext();
+
+  var STEPS = [
+    { sel: '#stepVideo', open: 'stepVideo', t: '1 · Bewegungsquelle', p: 'Wähle ein Video oder starte die Live-Kamera. Eine Person, ganzer Körper im Bild.' },
+    { sel: '#btnTrack', open: 'stepTrack', t: '2 · Bewegung tracken', p: 'Startet das Pose-Tracking. Die Feineinstellungen darunter brauchst du meist nicht.' },
+    { sel: '#dropChar', open: 'stepChar', t: '3 · 3D-Charakter laden', p: 'FBX, GLB oder VRM mit Rig. Der Charakter übernimmt dann deine Bewegung. Links/rechts tauschen und Licht findest du unter „Zuordnung, Licht und Anzeige“.' },
+    { sel: '#mon3d', t: 'Vorschau', p: 'Links dein Video mit Skelett, rechts der 3D-Charakter. Mit den Reglern unten rechts gehst du in Vollbild oder nimmst die Ansicht als Video auf.' },
+    { sel: '.transport', t: 'Zeitleiste', p: 'Abspielen, Pause und Spulen durch die getrackte Bewegung.' },
+    { sel: '#stepExport', open: 'stepExport', t: '4 · Exportieren', p: 'Charakter mit Animation als FBX. Weitere Exporte sind unter „Weitere Exporte“ zusammengefasst.' },
+    { sel: '#btnTour', t: 'Tour wiederholen', p: 'Mit diesem Knopf startest du die Tour jederzeit erneut.' }
+  ];
+  var ti = -1, dim = $('tourDim'), hole = $('tourHole'), pop = $('tourPop');
+  function place() {
+    var st = STEPS[ti]; if (!st) return;
+    var el = document.querySelector(st.sel); if (!el) return;
+    el.scrollIntoView({ block: 'nearest' });
+    var r = el.getBoundingClientRect(), pad = 6, m = 12;
+    hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px';
+    hole.style.width = (r.width + pad * 2) + 'px'; hole.style.height = (r.height + pad * 2) + 'px';
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var x = Math.min(Math.max(8, r.left), innerWidth - pw - 8), y = r.bottom + pad + m;
+    if (y + ph > innerHeight - 8) y = r.top - pad - m - ph;
+    if (y < 8) { y = Math.max(8, Math.min(innerHeight - ph - 8, r.top + 12)); x = Math.min(Math.max(8, r.right + pad + m), innerWidth - pw - 8); if (r.width > innerWidth * 0.5) x = Math.max(8, r.left + 12); }
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  }
+  function show(i) {
+    ti = i; var st = STEPS[i];
+    if (st.open) { steps.forEach(function (x) { setOpen(x, x.id === st.open); }); }
+    $('tourT').textContent = st.t; $('tourP').textContent = st.p; $('tourN').textContent = (i + 1) + ' / ' + STEPS.length;
+    $('tourBack').style.visibility = i ? 'visible' : 'hidden';
+    $('tourNext').textContent = i === STEPS.length - 1 ? 'Fertig' : 'Weiter';
+    $('tourEnd').style.display = i === STEPS.length - 1 ? 'none' : '';
+    dim.classList.add('show'); place(); setTimeout(function () { if (ti === i) place(); }, 280); $('tourNext').focus();
+  }
+  function end() { ti = -1; dim.classList.remove('show'); $('tourAsk').classList.remove('show'); lsSet('mrs.tour', 'done'); }
+  function start() { $('tourAsk').classList.remove('show'); show(0); }
+  $('tourStart').addEventListener('click', start); $('btnTour').addEventListener('click', start);
+  $('tourSkip').addEventListener('click', end); $('tourEnd').addEventListener('click', end);
+  $('tourBack').addEventListener('click', function () { if (ti > 0) show(ti - 1); });
+  $('tourNext').addEventListener('click', function () { if (ti >= STEPS.length - 1) end(); else show(ti + 1); });
+  window.addEventListener('resize', function () { if (ti >= 0) place(); });
+  document.addEventListener('keydown', function (e) {
+    var ask = $('tourAsk').classList.contains('show');
+    if (ti < 0 && !ask) return;
+    if (e.key === 'Escape') { end(); }
+    else if (ti >= 0 && (e.key === 'ArrowRight' || e.key === 'Enter')) { $('tourNext').click(); }
+    else if (ti >= 0 && e.key === 'ArrowLeft') { $('tourBack').click(); }
+    else return;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  if (lsGet('mrs.tour') !== 'done') setTimeout(function () { $('tourAsk').classList.add('show'); }, 700);
+})();
 </script>
 </body>
 </html>
