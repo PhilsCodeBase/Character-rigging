@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-f6/71WOfmD70sn2jZ7yO5Gy3dQ79bNuAxE7vZ2pQxkI=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-P11m0H9EHidG+mU/fFz5a3neMN5MLtbIa2VHP8zsJG8=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+uXZrXJiSMSHizOdkmbeWOmCKyhlc9swpK3cU2yL5R8=' 'sha256-f6/71WOfmD70sn2jZ7yO5Gy3dQ79bNuAxE7vZ2pQxkI=' 'sha256-2hUCLH+KPbSM95MkcViVPz0nldcdXgeMVInKx1AUhI8=' 'sha256-tzFRmNw6ZQjBHvj7i+EkRDUBtwtN3x3SLGS+z8uscTE=' https://cdn.jsdelivr.net/npm/three@0.160.0/ https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/ https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/ https://storage.googleapis.com/mediapipe-models/; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Motion Rig Studio</title>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -2090,7 +2090,7 @@ class PoseStabilizer {
   }
 }
 // [min cut-off Hz, factor per rad/s of bone turning, factor per m/s of hip movement] for the live presets
-const STAB = { fast: [1.5, 2.0, 3], balanced: [1.0, 1.2, 2], calm: [0.6, 0.6, 1] };
+const STAB = { fast: [6, 5, 8], balanced: [1.5, 1.8, 3], calm: [0.6, 0.6, 1] };
 function applyPose(target, w, off, hands, face, legs = 1, stab = null, src = S) {
   if (!target || !target.rt) return;
   const r = target.rt.solve(w, { offset: off, srcHipHeight: src.srcHipHeight || S.srcHipHeight, hands, face, legs });
@@ -2832,10 +2832,10 @@ function buildFigure2D(figure, J) {
   const world = (p) => [(p[0] - midX) * sc, (box.y1 - p[1]) * sc, 0];
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
   const bones = [], pos = [], segs = [];
-  const add = (name, parent, p) => {
+  const add = (name, parent, p, z = 0) => {
     const b = new THREE.Bone(); b.name = name;
-    const wp = world(p);
-    if (parent >= 0) { b.position.set(wp[0] - pos[parent][0], wp[1] - pos[parent][1], 0); bones[parent].add(b); } else b.position.fromArray(wp);
+    const wp = world(p); wp[2] = z;
+    if (parent >= 0) { b.position.set(wp[0] - pos[parent][0], wp[1] - pos[parent][1], z - pos[parent][2]); bones[parent].add(b); } else b.position.fromArray(wp);
     bones.push(b); pos.push(wp); return bones.length - 1;
   };
   const seg = (bone, a, b, z = 0) => segs.push({ bone, a, b, z });
@@ -2844,7 +2844,16 @@ function buildFigure2D(figure, J) {
   const sp1 = add('Spine1', sp, mix(J.pelvis, J.neck, 0.48));
   const sp2 = add('Spine2', sp1, mix(J.pelvis, J.neck, 0.74));
   const neck = add('Neck', sp2, J.neck);
-  const head = add('Head', neck, mix(J.neck, J.headTop, 0.18));
+  // The head gets a shallow dome (see below); its bone sits at the depth of the dome's rim.
+  const headH = Math.max(1, J.neck[1] - J.headTop[1]), headX = (J.neck[0] + J.headTop[0]) / 2;
+  const widths = [0.3, 0.4, 0.5, 0.6, 0.7].map((t) => {
+    const y = Math.max(0, Math.min(h - 1, Math.round(J.neck[1] - headH * t)));
+    let d = 0;
+    for (let x = Math.max(0, Math.round(headX - headH * 0.75)); x < Math.min(w, headX + headH * 0.75); x++) if (alpha[y * w + x]) d = Math.max(d, Math.abs(x - headX));
+    return d;
+  }).sort((a, b) => a - b);
+  const headRx = Math.max(headH * 0.25, Math.min(headH * 0.75, widths[2])), headDepth = headRx * 0.8 * sc;
+  const head = add('Head', neck, mix(J.neck, J.headTop, 0.18), -headDepth);
   add('HeadTop_End', head, J.headTop);
   seg(hips, J.pelvis, mix(J.pelvis, J.neck, 0.22)); seg(sp, mix(J.pelvis, J.neck, 0.22), mix(J.pelvis, J.neck, 0.48));
   seg(sp1, mix(J.pelvis, J.neck, 0.48), mix(J.pelvis, J.neck, 0.74)); seg(sp2, mix(J.pelvis, J.neck, 0.74), J.neck);
@@ -2862,64 +2871,113 @@ function buildFigure2D(figure, J) {
     seg(ul, hp, kn, -0.004); seg(ll, kn, an, -0.004); seg(ft, an, toe, -0.004);
   }
 
-  // grid mesh over every cell that contains part of the drawing
   const cell = Math.max(3, Math.round((box.y1 - box.y0) / 150));
+  const segDist = (p, s) => {
+    const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((p[0] - s.a[0]) * dx + (p[1] - s.a[1]) * dy) / l2));
+    return Math.hypot(p[0] - s.a[0] - dx * t, p[1] - s.a[1] - dy * t);
+  };
+  segs.forEach((s) => { const m = /^(Left|Right)(Arm|ForeArm|Hand)$/.exec(bones[s.bone].name); s.arm = m ? (m[1] === 'Left' ? 1 : 2) : 0; s.hand = !!m && m[2] === 'Hand'; });
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && alpha[Math.floor(y) * w + Math.floor(x)] === 1;
+  // half thickness of each arm, measured across the bone (the free side counts, the other may touch the body)
+  const H = box.y1 - box.y0;
+  const armR = [0, 1, 2].map((side) => {
+    const found = [];
+    for (const s of segs) {
+      if (!side || s.arm !== side || s.hand) continue;
+      const len = Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]) || 1, nx = -(s.b[1] - s.a[1]) / len, ny = (s.b[0] - s.a[0]) / len;
+      for (const t of [0.35, 0.5, 0.65, 0.8]) {
+        const x = s.a[0] + (s.b[0] - s.a[0]) * t, y = s.a[1] + (s.b[1] - s.a[1]) * t;
+        if (!solid(x, y)) continue;
+        const run = (sg) => { let d = 0; while (d < H * 0.08 && solid(x + nx * sg * (d + 1), y + ny * sg * (d + 1))) d++; return d; };
+        found.push(Math.min(run(1), run(-1)));
+      }
+    }
+    found.sort((a, b) => a - b);
+    return Math.max(cell * 1.8, Math.min(H * 0.07, (found[found.length >> 1] || 0) * 1.05 + cell));
+  });
+  // how far the body reaches to each side of its middle line, measured below the arm pits
+  const torsoH = Math.max(1, J.pelvis[1] - J.neck[1]);
+  const midAt = (y) => J.neck[0] + (J.pelvis[0] - J.neck[0]) * Math.max(0, Math.min(1, (y - J.neck[1]) / torsoH));
+  const reach = Math.max(cell * 2, Math.abs(J.lSh[0] - J.neck[0]), Math.abs(J.rSh[0] - J.neck[0]));
+  const sideEdge = (sg) => {
+    const runs = [0.55, 0.7, 0.85].map((t) => {
+      const y = Math.round(J.neck[1] + torsoH * t), mx = Math.round(midAt(y));
+      let d = 0; while (d < reach * 1.5 && solid(mx + sg * (d + 1), y)) d++;
+      return d;
+    }).sort((p, q) => p - q);
+    return Math.max(reach * 1.05, Math.min(reach * 1.5, runs[1])) + cell;
+  };
+  const edgeR = sideEdge(1), edgeL = sideEdge(-1); // R: right half of the picture
+  const inHead = (p) => p[1] < J.neck[1] - cell && Math.abs(p[0] - headX) < headH * 0.9;
+  const inColumn = (p) => { const off = p[0] - midAt(p[1]); return p[1] >= J.neck[1] - cell && p[1] <= J.pelvis[1] + cell * 2 && off <= edgeR && off >= -edgeL; };
+  // 0 = body, 1 = left arm, 2 = right arm: close to the arm bone, or outside the body and nearest to an arm
+  const partOf = (p) => {
+    let arm = 0, armD = Infinity, bodyD = Infinity, core = 0, coreD = 1;
+    for (const s of segs) {
+      const d = segDist(p, s);
+      if (!s.arm) { bodyD = Math.min(bodyD, d); continue; }
+      if (d < armD) { armD = d; arm = s.arm; }
+      const q = d / armR[s.arm];
+      if (q < coreD) { coreD = q; core = s.arm; }
+    }
+    // the shoulder corner of the body stays with the body, even though it lies close to the arm bone
+    if (core && !(inColumn(p) && Math.hypot(p[0] - shoulder[core][0], p[1] - shoulder[core][1]) < armR[core] * 1.2 + cell)) return core;
+    return !inHead(p) && !inColumn(p) && armD < bodyD ? arm : 0;
+  };
+  const shoulder = [null, J.lSh, J.rSh];
+  // arm and body stay connected around the shoulder down to about the arm pit; below that they are cut apart
+  const joinX = [0, 1, 2].map((side) => (side ? Math.max(armR[side] * 1.6, (side === 1 ? edgeR : edgeL) - Math.abs(shoulder[side][0] - midAt(shoulder[side][1])) + armR[side]) + armR[side] * 2 : 0));
+  const atJoin = (p, side) => p[1] < shoulder[side][1] + Math.max(armR[side] * 2, torsoH * 0.25) && Math.abs(p[0] - shoulder[side][0]) < joinX[side];
+  // grid mesh over every cell that contains part of the drawing; arm and body get their own vertices, shared only at the shoulder
   const gw = Math.ceil(w / cell), gh = Math.ceil(h / cell);
-  const vid = new Map(), verts = [], tris = [];
-  const vert = (gx, gy) => {
-    const key = gy * (gw + 1) + gx; let i = vid.get(key);
-    if (i == null) { i = verts.length; vid.set(key, i); verts.push([Math.min(w, gx * cell), Math.min(h, gy * cell)]); }
+  const vid = new Map(), verts = [], part = [], tris = [];
+  const vert = (gx, gy, side) => {
+    const p = [Math.min(w, gx * cell), Math.min(h, gy * cell)];
+    const join = side > 0 && atJoin(p, side), own = join ? 0 : side;
+    const key = (gy * (gw + 1) + gx) * 3 + own;
+    let i = vid.get(key);
+    if (i == null) { i = verts.length; vid.set(key, i); verts.push(p); part.push(own); }
     return i;
   };
   for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
     let used = false;
     for (let y = gy * cell; !used && y < Math.min(h, (gy + 1) * cell); y++) for (let x = gx * cell; x < Math.min(w, (gx + 1) * cell); x++) if (alpha[y * w + x]) { used = true; break; }
     if (!used) continue;
-    const a = vert(gx, gy), b = vert(gx + 1, gy), c = vert(gx + 1, gy + 1), d = vert(gx, gy + 1);
+    const side = partOf([(gx + 0.5) * cell, (gy + 0.5) * cell]);
+    const a = vert(gx, gy, side), b = vert(gx + 1, gy, side), c = vert(gx + 1, gy + 1, side), d = vert(gx, gy + 1, side);
     tris.push(a, d, c, a, c, b);
   }
   const n = verts.length, near = verts.map(() => new Set());
   for (let t = 0; t < tris.length; t += 3) for (let k = 0; k < 3; k++) { const a = tris[t + k], b = tris[t + (k + 1) % 3]; near[a].add(b); near[b].add(a); }
-  const segDist = (p, s) => {
-    const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], l2 = dx * dx + dy * dy || 1;
-    const t = Math.max(0, Math.min(1, ((p[0] - s.a[0]) * dx + (p[1] - s.a[1]) * dy) / l2));
-    return Math.hypot(p[0] - s.a[0] - dx * t, p[1] - s.a[1] - dy * t);
-  };
-  const nearestSeg = (p) => { let best = 0, d = Infinity; segs.forEach((s, k) => { const q = segDist(p, s); if (q < d) { d = q; best = k; } }); return [best, d]; };
-  // each bone spreads along the drawing itself (not through the air), so an arm does not drag the body along
+  const nearestSeg = (p, side) => { let best = 0, d = Infinity; segs.forEach((s, k) => { if (s.arm !== side) return; const q = segDist(p, s); if (q < d) { d = q; best = k; } }); return [best, d]; };
+  // body bones spread along the drawing itself (not through the air); arm vertices only know their own arm
   const owner = new Int32Array(n).fill(-1);
   let front = [];
-  verts.forEach((p, i) => { const [k, d] = nearestSeg(p); if (d < cell * 1.6) { owner[i] = k; front.push(i); } });
+  verts.forEach((p, i) => {
+    if (part[i]) { owner[i] = nearestSeg(p, part[i])[0]; return; }
+    const [k, d] = nearestSeg(p, 0); if (d < cell * 1.6) { owner[i] = k; front.push(i); }
+  });
   while (front.length) {
     const next = [];
     for (const i of front) for (const j of near[i]) if (owner[j] < 0) { owner[j] = owner[i]; next.push(j); }
     front = next;
   }
-  verts.forEach((p, i) => { if (owner[i] < 0) owner[i] = nearestSeg(p)[0]; });
+  verts.forEach((p, i) => { if (owner[i] < 0) owner[i] = nearestSeg(p, 0)[0]; });
   const segOf = (bone) => segs.findIndex((s) => s.bone === bone);
   const headSeg = segOf(head), spineSegs = [hips, sp, sp1, sp2].map(segOf), spineAt = [0.11, 0.35, 0.61, 0.87];
-  // how far the body reaches to each side, measured below the arm pits
-  const torsoH = Math.max(1, J.pelvis[1] - J.neck[1]);
-  const sideEdge = (sg, sh) => {
-    const reach = Math.max(cell * 2, Math.abs(sh[0] - J.neck[0]));
-    const runs = [0.55, 0.7, 0.85].map((t) => {
-      const y = Math.max(0, Math.min(h - 1, Math.round(J.neck[1] + torsoH * t)));
-      let x = Math.max(0, Math.min(w - 1, Math.round(J.neck[0] + (J.pelvis[0] - J.neck[0]) * t))), d = 0;
-      while (x + sg >= 0 && x + sg < w && alpha[y * w + x + sg]) { x += sg; d = Math.abs(x - J.neck[0]); }
-      return d;
-    }).sort((p, q) => p - q);
-    return Math.max(reach * 1.05, Math.min(reach * 1.5, runs[1])) + cell;
-  };
-  const edgeR = sideEdge(1, J.lSh), edgeL = sideEdge(-1, J.rSh); // R: right half of the picture
-  const lowerArms = segs.filter((s) => /ForeArm$|Hand$/.test(bones[s.bone].name));
-  const headH = J.neck[1] - J.headTop[1];
+  // vertices shared between arm and body: on the body they stay with the body, outside it they follow the arm
+  const armUse = new Uint8Array(n);
+  for (let t = 0; t < tris.length; t += 3) {
+    const tri = [tris[t], tris[t + 1], tris[t + 2]], side = Math.max(...tri.map((i) => part[i]));
+    if (side) for (const i of tri) if (!part[i]) armUse[i] = side;
+  }
   const fixed = new Array(n).fill(null);
   verts.forEach((p, i) => {
-    const dx = p[0] - J.neck[0];
-    if (p[1] < J.neck[1] - cell && Math.abs(dx) < headH * 0.9) { fixed[i] = new Map([[headSeg, 1]]); owner[i] = headSeg; return; }
-    const t = (J.pelvis[1] - p[1]) / torsoH, off = p[0] - (J.pelvis[0] + (J.neck[0] - J.pelvis[0]) * t);
-    if (p[1] < J.neck[1] - cell || p[1] > J.pelvis[1] + cell * 2 || off > edgeR || off < -edgeL) return;
-    if (lowerArms.some((s) => segDist(p, s) < cell * 4)) return; // a forearm lying in front of the body still moves
+    if (part[i]) return;
+    if (inHead(p)) { fixed[i] = new Map([[headSeg, 1]]); owner[i] = headSeg; return; }
+    if (!inColumn(p)) { if (armUse[i]) owner[i] = nearestSeg(p, armUse[i])[0]; return; }
+    const t = (J.pelvis[1] - p[1]) / torsoH;
     let k = 0; while (k < 3 && t > spineAt[k + 1]) k++;
     const f = k < 3 ? Math.max(0, Math.min(1, (t - spineAt[k]) / (spineAt[k + 1] - spineAt[k]))) : 0;
     fixed[i] = f > 0 ? new Map([[spineSegs[k], 1 - f], [spineSegs[k + 1], f]]) : new Map([[spineSegs[k], 1]]);
@@ -2934,10 +2992,16 @@ function buildFigure2D(figure, J) {
       return out;
     });
   }
+  // dome: highest in the middle of the face, falling back towards the outline, flat again at the neck
+  const domeZ = (p) => {
+    const ex = (p[0] - headX) / headRx, ey = (p[1] - (J.neck[1] - headH * 0.5)) / (headH * 0.55);
+    const fade = Math.max(0, Math.min(1, (J.neck[1] - p[1]) / (headH * 0.25)));
+    return headDepth * (Math.sqrt(Math.max(0, 1 - ex * ex - ey * ey)) - 1) * fade;
+  };
   const P = new Float32Array(n * 3), UV = new Float32Array(n * 2), SI = new Uint16Array(n * 4), SW = new Float32Array(n * 4);
   verts.forEach((p, i) => {
     const wp = world(p);
-    P.set([wp[0], wp[1], segs[owner[i]].z], i * 3);
+    P.set([wp[0], wp[1], segs[owner[i]].z + (owner[i] === headSeg ? domeZ(p) : 0)], i * 3);
     UV.set([p[0] / w, 1 - p[1] / h], i * 2);
     const top = [...weights[i]].sort((x, y) => y[1] - x[1]).slice(0, 4), sum = top.reduce((q, e) => q + e[1], 0);
     top.forEach(([k, v], j) => { SI[i * 4 + j] = segs[k].bone; SW[i * 4 + j] = v / sum; });
@@ -2977,6 +3041,7 @@ function makeFlatRetargeter(skel, roles) {
   const parentInv = m4.invert(parentMat);
   const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const lastDelta = {}; // keeps a limb from flipping to the other way round when it points opposite to its rest direction
   function solve(W, opts = {}) {
     const g = (i) => lmv(W, i), legW = clamp01(opts.legs ?? 1);
     const sub = (a, b) => v3.sub(g(a), g(b));
@@ -2989,10 +3054,12 @@ function makeFlatRetargeter(skel, roles) {
     if (opts.face) { const q = [opts.face[0], opts.face[1], opts.face[2], opts.face[3]]; across = qt.rot(q, [1, 0, 0]); ahead = qt.rot(q, [0, 0, 1]); pitchZero = 0; }
     const toHead = v3.sub(earC, v3.mid(g(LM.L_SH), g(LM.R_SH)));
     const sway = wrap(Math.atan2(toHead[1], toHead[0]) - Math.PI / 2 - lean); // head moved sideways over the shoulders
-    const tilt = Math.abs(across[0]) > 0.03 ? Math.atan(across[1] / across[0]) : lean;
-    const roll = limit(lean + wrap(tilt - lean) * 1.3 + sway * 0.5, 0.8);
-    const yaw = limit(Math.atan2(ahead[0], Math.max(0.01, ahead[2])), 0.9) * 0.7;
-    const nod = limit(Math.atan2(-ahead[1], Math.hypot(ahead[0], ahead[2]) || 1) - pitchZero, 0.8) * 0.6; // positive: looking down
+    // seen from the side the ear line says little about the tilt: fade it out instead of switching
+    const earW = clamp01((Math.abs(across[0]) / (v3.len(across) || 1) - 0.25) / 0.35);
+    const tilt = earW > 0 ? wrap(Math.atan(across[1] / across[0]) - lean) * earW : 0;
+    const roll = limit(lean + tilt * 1.3 + sway * 0.5, 0.8);
+    const yaw = limit(Math.atan2(ahead[0], Math.max(0.01, ahead[2])), 0.75);
+    const nod = limit(Math.atan2(-ahead[1], Math.hypot(ahead[0], ahead[2]) || 1) - pitchZero, 0.6) * 0.8; // positive: looking down
     const seg = {};
     for (const [s, SH, EL, WR, IX, PK, HP, KN, AN, FT] of [
       ['l', LM.L_SH, LM.L_EL, LM.L_WR, LM.L_INDEX, LM.L_PINKY, LM.L_HIP, LM.L_KNEE, LM.L_ANK, LM.L_FOOT],
@@ -3013,7 +3080,11 @@ function makeFlatRetargeter(skel, roles) {
         let k = clamp01((flat / full - 0.15) / 0.3); // limb points at the camera: its angle says little, follow the parent
         if (/Leg$/.test(role)) k *= legW;
         if (/Hand$/.test(role)) k *= 0.6;
-        a = p + wrap(Math.atan2(d[1], d[0]) - restAngle[role] - p) * k;
+        let turnBy = wrap(Math.atan2(d[1], d[0]) - restAngle[role] - p);
+        const last = lastDelta[role];
+        if (last != null && Math.abs(turnBy) > 2.4 && Math.abs(turnBy - last) > Math.PI) turnBy -= Math.sign(turnBy - last) * 2 * Math.PI;
+        lastDelta[role] = turnBy;
+        a = p + turnBy * k;
       }
       turn[i] = a;
       let q = qt.axisAngle([0, 0, 1], a - p);
@@ -3040,11 +3111,12 @@ async function detectPerson(cv) {
     marker = await vision.PoseLandmarker.createFromOptions(fileset, { baseOptions: { modelAssetPath: MODEL_URL('full'), delegate: 'CPU' }, runningMode: 'IMAGE', numPoses: 1, outputSegmentationMasks: true });
   } catch (e) { console.warn('tasks-vision unavailable for photos, trying legacy pose', e); }
   if (marker) {
-    const r = marker.detect(cv), m = r.segmentationMasks && r.segmentationMasks[0];
-    const out = r.landmarks && r.landmarks[0] && m ? { lm: r.landmarks[0], mask: Float32Array.from(m.getAsFloat32Array()), mw: m.width, mh: m.height } : null;
-    if (m) m.close();
-    marker.close();
-    return out;
+    try {
+      const r = marker.detect(cv), m = r.segmentationMasks && r.segmentationMasks[0];
+      const out = r.landmarks && r.landmarks[0] && m ? { lm: r.landmarks[0], mask: Float32Array.from(m.getAsFloat32Array()), mw: m.width, mh: m.height } : null;
+      if (m) m.close();
+      return out;
+    } finally { marker.close(); }
   }
   await ensureEngine('full');
   if (ENG.mode !== 'legacy') throw new Error('no segmentation engine');
@@ -3173,8 +3245,10 @@ function skelFromObject(root) {
   return { skel: { nodes }, objs, index, meshes };
 }
 
+let charLoad = 0; // only the file picked last counts
 async function loadCharacterFile(file) {
   if (!file) return;
+  const turn = ++charLoad;
   const ext = file.name.split('.').pop().toLowerCase();
   $('charMeta').textContent = 'Lade ' + file.name + ' …';
   try {
@@ -3182,6 +3256,8 @@ async function loadCharacterFile(file) {
     if (['png', 'webp', 'jpg', 'jpeg'].includes(ext)) {
       if (S.tracking || S.live) throw new Error('Bitte erst das Tracking beenden bzw. die Kamera stoppen.');
       const figure = await readFigureImage(file, $('selImgKind').value), joints = autoJoints(figure);
+      if (turn !== charLoad) return;
+      if (S.tracking || S.live) throw new Error('Während das Bild geladen wurde, hat das Tracking begonnen. Bitte danach erneut laden.');
       useCharacter(buildFigure2D(figure, joints), { name: file.name.replace(/\.[^.]+$/, ''), ext, label: file.name, figure, joints });
       toast(figure.photo && !figure.whole ? 'Person ausgeschnitten und geriggt. Die Beine sind nicht ganz im Bild; ein Ganzkörperfoto bewegt sich besser.' : `${figure.photo ? 'Person ausgeschnitten und geriggt' : '2D-Figur geriggt'}. Passen die Gelenke nicht, über „Gelenke anpassen“ korrigieren.`, false, 6000);
       return;
@@ -3194,8 +3270,10 @@ async function loadCharacterFile(file) {
       const gltf = await new GLTFLoader().parseAsync(data, '');
       root = gltf.scene || gltf.scenes[0]; flipV = true; unit = 'm';
     } else throw new Error('Format nicht unterstützt (FBX, GLB, GLTF, VRM, PNG, WebP oder JPG).');
+    if (turn !== charLoad) return;
     useCharacter(root, { name: file.name.replace(/\.[^.]+$/, ''), ext, label: file.name, flipV, unit });
   } catch (err) {
+    if (turn !== charLoad) return;
     console.error(err);
     $('charMeta').textContent = 'Fehler: ' + (err.message || err);
     toast('Charakter konnte nicht geladen werden: ' + (err.message || err), true, 7000);
@@ -3207,7 +3285,10 @@ function useCharacter(root, { name, ext, label, flipV = false, unit = 'm', figur
   const boneCount = info.skel.nodes.filter((n) => n.kind === 'bone').length;
   if (!boneCount) throw new Error('Die Datei enthält kein Skelett (keine Bones). Bitte einen geriggten Charakter verwenden.');
   const firstCharacter = !S.char;
-  if (S.char) { scene.remove(S.char.holder); if (S.char.helper) scene.remove(S.char.helper); }
+  if (S.char) {
+    scene.remove(S.char.holder); if (S.char.helper) { scene.remove(S.char.helper); S.char.helper.dispose(); }
+    S.char.holder.traverse((o) => { if (!o.isMesh) return; o.geometry.dispose(); for (const m of [].concat(o.material)) { if (m.map) m.map.dispose(); m.dispose(); } if (o.skeleton) o.skeleton.dispose(); });
+  }
   const holder = new THREE.Group(); holder.add(root); scene.add(holder);
   root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
   // fit to ~1.75 m, feet on the floor
@@ -3459,6 +3540,8 @@ async function startLive() {
   await new Promise((r) => { if (video.videoWidth) r(); else video.onloadedmetadata = () => r(); setTimeout(r, 3000); });
   S.vidW = video.videoWidth || 1280; S.vidH = video.videoHeight || 720;
   S.live = { stream, filter: new OneEuro(165), hfilter: [new OneEuro(105), new OneEuro(105)], handSeen: [0, 0], ffilter: new OneEuro(FACE_LEN), faceSeen: 0, lastRaw: null, ref: null, buf: [], lastVT: -1, busy: false, rec: null, dimsSet: false, fpsCount: 0, fpsT: performance.now(), fps: 0 };
+  const live = S.live;
+  stream.getVideoTracks().forEach((t) => t.addEventListener('ended', () => { if (S.live === live) { stopLive(); toast('Die Kamera wurde getrennt. Verbinde sie wieder und starte die Live-Kamera erneut.', true, 7000); } }));
   // Track each camera frame as soon as it arrives instead of waiting for the next screen refresh.
   if (video.requestVideoFrameCallback) {
     const L = S.live; L.rvfc = true;
@@ -3495,7 +3578,7 @@ $('chkSwap').addEventListener('change', () => {
   toast(on ? 'Links und rechts sind jetzt getauscht.' : 'Links und rechts sind wieder seitenrichtig.');
 });
 
-const REACT = { fast: [2.5, 6], balanced: [1.2, 2], calm: [0.6, 0.8] }; // [min cut-off Hz, speed factor]
+const REACT = { fast: [5, 12], balanced: [1.5, 3], calm: [0.6, 0.8] }; // [min cut-off Hz, speed factor]
 // Live update of persons 2 …: own filter, placed where they stand in the picture; returns what the overlay draws.
 function liveOthers(dets, now, minC, beta, stab) {
   const shown = [], rigOn = $('chkRig').checked, charOn = !!(S.char && S.char.holder.visible);
